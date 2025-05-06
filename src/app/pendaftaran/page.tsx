@@ -15,15 +15,17 @@ export default function RegistrationPage() {
     const signedIn = typeof window !== 'undefined' ? localStorage.getItem('isUserSignedIn') : null;
     if (signedIn === 'true') {
       setIsAuthenticated(true);
+      setIsCheckingAuth(false);
     } else {
       // Add a small delay before redirecting to allow any initial UI to render briefly
       // This can prevent flashes of content if the redirect is very fast.
       const timer = setTimeout(() => {
         router.push('/signin?redirect=/pendaftaran');
       }, 100); // 100ms delay, adjust as needed
-      return () => clearTimeout(timer);
+      return () => clearTimeout(timer); // Cleanup timer on unmount or if effect re-runs
     }
-    setIsCheckingAuth(false);
+    // Removed setIsCheckingAuth(false) from here as it's now handled in the 'if signedIn' block
+    // or the component unmounts due to redirect.
   }, [router]);
 
   if (isCheckingAuth) {
@@ -35,15 +37,17 @@ export default function RegistrationPage() {
     );
   }
 
+  // The UI for !isAuthenticated has been removed as per user request.
+  // The useEffect hook handles redirection if not authenticated.
+  // We only render the form if authenticated.
   if (!isAuthenticated) {
-    // This state should ideally not be reached due to the redirect in useEffect,
-    // but it's a fallback.
-    return (
-      <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] py-8">
-        <p className="text-destructive">Anda harus masuk untuk mengakses halaman ini.</p>
-        <p className="text-muted-foreground">Anda akan diarahkan ke halaman Sign In.</p>
-      </div>
-    );
+    // This part should ideally not be reached if the redirect works correctly.
+    // It can serve as a minimal fallback or be removed if the redirect is robust.
+    // For now, let's keep the loader logic until authentication is confirmed or redirect happens.
+    // If authentication check is complete and user is not authenticated, they should have been redirected.
+    // To avoid rendering anything in this brief period, we can return null or a minimal loader.
+    // However, the isCheckingAuth loader should cover this.
+    return null; 
   }
 
   return (
@@ -62,3 +66,4 @@ export default function RegistrationPage() {
     </div>
   );
 }
+
