@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, type ChangeEvent, type FormEvent } from 'react';
-import { UploadCloud, User, Home, BookOpen, FileText, Briefcase } from 'lucide-react';
+import { UploadCloud, User, Home, BookOpen, FileText, Briefcase, Phone } from 'lucide-react';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
@@ -31,6 +31,7 @@ const formSchema = z.object({
   birthDate: z.string().refine((date) => !isNaN(Date.parse(date)), { message: 'Tanggal lahir tidak valid.'}),
   parentName: z.string().min(3, { message: 'Nama orang tua minimal 3 karakter.' }).max(100),
   parentOccupation: z.string().min(3, {message: 'Pekerjaan orang tua minimal 3 karakter'}).max(100),
+  parentContact: z.string().regex(/^(\+62|0)8[1-9][0-9]{6,9}$/, { message: 'Nomor telepon orang tua tidak valid. Gunakan format 08xx atau +628xx.'}),
   birthCertificate: z.any()
     .refine((files) => files?.[0], "Akta kelahiran wajib diunggah.")
     .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Ukuran maksimal file adalah 5MB.`)
@@ -64,6 +65,7 @@ export default function RegistrationForm() {
       birthDate: '',
       parentName: '',
       parentOccupation: '',
+      parentContact: '',
     },
   });
 
@@ -194,6 +196,21 @@ export default function RegistrationForm() {
               <FormControl>
                 <Input placeholder="Contoh: Karyawan Swasta" {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="parentContact"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="flex items-center"><Phone className="mr-2 h-5 w-5 text-primary" />Kontak Orang Tua/Wali (Nomor HP)</FormLabel>
+              <FormControl>
+                <Input type="tel" placeholder="Contoh: 081234567890 atau +6281234567890" {...field} />
+              </FormControl>
+              <FormDescription>Nomor HP yang bisa dihubungi.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
