@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useState, type ChangeEvent, type FormEvent } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { UploadCloud, User, Home, BookOpen, FileText, Briefcase, Phone, Award } from 'lucide-react';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -93,7 +93,7 @@ export default function RegistrationForm() {
     whatsappMessage += `*Data Siswa:*\n`;
     whatsappMessage += `Nama Lengkap: ${data.fullName}\n`;
     whatsappMessage += `NISN: ${data.nisn}\n`;
-    whatsappMessage += `Tanggal Lahir: ${data.birthDate}\n`; // Consider formatting date if needed
+    whatsappMessage += `Tanggal Lahir: ${data.birthDate}\n`;
     whatsappMessage += `Alamat: ${data.address}\n`;
     whatsappMessage += `Asal Sekolah: ${data.previousSchool}\n\n`;
 
@@ -107,42 +107,46 @@ export default function RegistrationForm() {
     whatsappMessage += `Kartu Keluarga: ${data.familyCard?.[0]?.name || 'Tidak ada file'}\n`;
     whatsappMessage += `Ijazah Terakhir: ${data.lastDiploma?.[0]?.name || 'Tidak ada file'}\n\n`;
     
-    whatsappMessage += `_Mohon data ini diproses dan diarsipkan dalam format Excel._`;
+    whatsappMessage += `_Mohon data ini diproses dan diarsipkan._`; // Simplified message for admin
 
-    const adminPhoneNumber = "6285881585749"; // Format: countrycode + number without leading 0 or +
+    const adminPhoneNumber = "6285881585749"; 
     const encodedMessage = encodeURIComponent(whatsappMessage);
     const whatsappUrl = `https://wa.me/${adminPhoneNumber}?text=${encodedMessage}`;
 
-    // Open WhatsApp link in a new tab
-    if (typeof window !== "undefined") {
-      window.open(whatsappUrl, '_blank');
-    }
-
+    // Display toast informing user about WhatsApp redirection and action needed
     toast({
-      title: 'Pendaftaran Diproses!',
+      title: 'Data Pendaftaran Siap Dikirim!',
       description: (
         <div>
-          <p>Data Anda sedang disiapkan untuk dikirim ke Admin via WhatsApp.</p>
-          <p className="mt-1">Anda akan diarahkan ke halaman konfirmasi setelah ini.</p>
+          <p>Anda akan diarahkan ke WhatsApp untuk mengirim data pendaftaran ke Admin.</p>
+          <p className="mt-1">Silakan tekan tombol kirim di WhatsApp.</p>
         </div>
       ),
       variant: 'default',
       className: 'bg-accent text-accent-foreground',
-      duration: 5000, // Increased duration for user to read
+      duration: 7000, 
     });
     
-    // Wait a bit for user to potentially interact with WhatsApp or see the toast
-    await new Promise((resolve) => setTimeout(resolve, 1500)); 
+    // Wait a bit for user to read the toast before redirecting
+    await new Promise((resolve) => setTimeout(resolve, 2500)); 
     
+    // Open WhatsApp link in a new tab
+    if (typeof window !== "undefined") {
+      window.open(whatsappUrl, '_blank');
+    }
+    
+    // Redirect to confirmation page after attempting to open WhatsApp
+    // This happens regardless of whether the WhatsApp message was actually sent,
+    // as we can't track that from the browser.
     router.push(`/confirmation?name=${encodeURIComponent(data.fullName)}`);
     setIsSubmitting(false);
-    // form.reset(); // Reset form after successful submission and redirection
+    // form.reset(); // Consider if form reset is desired here or on confirmation page.
   }
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>, fieldName: keyof RegistrationFormData) => {
     if (event.target.files && event.target.files.length > 0) {
       form.setValue(fieldName, event.target.files);
-      form.trigger(fieldName); // Trigger validation for the file field
+      form.trigger(fieldName); 
     }
   };
 
@@ -328,7 +332,7 @@ export default function RegistrationForm() {
 
 
         <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isSubmitting}>
-          {isSubmitting ? 'Mengirim...' : 'Daftar Sekarang & Kirim ke Admin'}
+          {isSubmitting ? 'Memproses...' : 'Daftar & Siapkan Data untuk Admin'}
         </Button>
       </form>
     </Form>
