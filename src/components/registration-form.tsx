@@ -109,7 +109,7 @@ export default function RegistrationForm() {
     
     emailBody += `Mohon data ini diproses dan diarsipkan. Format Excel tidak dilampirkan secara otomatis, data disajikan sebagai teks.`;
 
-    const adminEmail = "rockyalfarizi2@gmail.com";
+    const adminEmail = "rockyalfarizi23@gmail.com";
     const emailSubject = `Data Pendaftaran Siswa Baru - ${data.fullName}`;
     const encodedEmailSubject = encodeURIComponent(emailSubject);
     const encodedEmailBody = encodeURIComponent(emailBody);
