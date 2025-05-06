@@ -2,7 +2,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,48 +15,45 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon, Loader2 } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { useState, type ChangeEvent } from 'react';
-import { UploadCloud, User, Home, BookOpen, FileText, Briefcase, Phone, Award, Mail } from 'lucide-react';
+import { useState } from 'react';
+import { sendRegistrationEmail } from '@/app/actions/registrationActions'; // Server Action
 
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
-
-const formSchema = z.object({
-  fullName: z.string().min(3, { message: 'Nama lengkap minimal 3 karakter.' }).max(100),
-  address: z.string().min(10, { message: 'Alamat minimal 10 karakter.' }).max(200),
-  previousSchool: z.string().min(3, { message: 'Nama sekolah asal minimal 3 karakter.' }).max(100),
-  nisn: z.string().regex(/^\d{10}$/, { message: 'NISN harus terdiri dari 10 digit angka.' }),
-  birthDate: z.string().refine((date) => !isNaN(Date.parse(date)), { message: 'Tanggal lahir tidak valid.'}),
-  parentName: z.string().min(3, { message: 'Nama orang tua minimal 3 karakter.' }).max(100),
-  parentOccupation: z.string().min(3, {message: 'Pekerjaan orang tua minimal 3 karakter'}).max(100),
-  parentContact: z.string().regex(/^(\+62|0)8[1-9][0-9]{6,9}$/, { message: 'Nomor telepon orang tua tidak valid. Gunakan format 08xx atau +628xx.'}),
-  birthCertificate: z.any()
-    .refine((files) => files?.[0], "Akta kelahiran wajib diunggah.")
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Ukuran maksimal file adalah 5MB.`)
-    .refine(
-      (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
-      "Format file tidak didukung. Hanya .jpg, .jpeg, .png, dan .pdf yang diperbolehkan."
-    ),
-  familyCard: z.any()
-    .refine((files) => files?.[0], "Kartu keluarga wajib diunggah.")
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Ukuran maksimal file adalah 5MB.`)
-    .refine(
-      (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
-      "Format file tidak didukung. Hanya .jpg, .jpeg, .png, dan .pdf yang diperbolehkan."
-    ),
-  lastDiploma: z.any()
-    .refine((files) => files?.[0], "Ijazah terakhir wajib diunggah.")
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Ukuran maksimal file adalah 5MB.`)
-    .refine(
-      (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
-      "Format file tidak didukung. Hanya .jpg, .jpeg, .png, dan .pdf yang diperbolehkan."
-    ),
+const registrationFormSchema = z.object({
+  fullName: z.string().min(3, { message: 'Nama lengkap minimal 3 karakter.' }),
+  gender: z.enum(['Laki-laki', 'Perempuan'], { required_error: 'Jenis kelamin harus dipilih.' }),
+  birthPlace: z.string().min(3, { message: 'Tempat lahir minimal 3 karakter.' }),
+  birthDate: z.date({ required_error: 'Tanggal lahir harus diisi.' }),
+  religion: z.string().min(3, { message: 'Agama minimal 3 karakter.' }),
+  address: z.string().min(10, { message: 'Alamat lengkap minimal 10 karakter.' }),
+  studentPhoneNumber: z.string().min(10, { message: 'Nomor telepon minimal 10 digit.' }).regex(/^\d+$/, { message: "Nomor telepon hanya boleh berisi angka." }),
+  studentEmail: z.string().email({ message: 'Format email tidak valid.' }),
+  previousSchool: z.string().min(3, { message: 'Asal sekolah minimal 3 karakter.' }),
+  lastCertificate: z.enum(['SD/MI', 'Paket A'], { required_error: 'Ijazah terakhir harus dipilih.'}),
+  fatherName: z.string().min(3, { message: 'Nama ayah minimal 3 karakter.' }),
+  fatherOccupation: z.string().min(3, { message: 'Pekerjaan ayah minimal 3 karakter.' }),
+  fatherPhoneNumber: z.string().min(10, { message: 'Nomor telepon minimal 10 digit.' }).regex(/^\d+$/, { message: "Nomor telepon hanya boleh berisi angka." }),
+  motherName: z.string().min(3, { message: 'Nama ibu minimal 3 karakter.' }),
+  motherOccupation: z.string().min(3, { message: 'Pekerjaan ibu minimal 3 karakter.' }),
+  motherPhoneNumber: z.string().min(10, { message: 'Nomor telepon minimal 10 digit.' }).regex(/^\d+$/, { message: "Nomor telepon hanya boleh berisi angka." }),
 });
 
-type RegistrationFormData = z.infer<typeof formSchema>;
+export type RegistrationFormData = z.infer<typeof registrationFormSchema>;
 
 export default function RegistrationForm() {
   const { toast } = useToast();
@@ -64,284 +61,350 @@ export default function RegistrationForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<RegistrationFormData>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(registrationFormSchema),
     defaultValues: {
       fullName: '',
+      birthPlace: '',
+      religion: '',
       address: '',
+      studentPhoneNumber: '',
+      studentEmail: '',
       previousSchool: '',
-      nisn: '',
-      birthDate: '',
-      parentName: '',
-      parentOccupation: '',
-      parentContact: '',
-      birthCertificate: undefined,
-      familyCard: undefined,
-      lastDiploma: undefined,
+      fatherName: '',
+      fatherOccupation: '',
+      fatherPhoneNumber: '',
+      motherName: '',
+      motherOccupation: '',
+      motherPhoneNumber: '',
     },
   });
 
   async function onSubmit(data: RegistrationFormData) {
     setIsSubmitting(true);
-    
-    // Simulate a brief processing delay
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    console.log('Form submitted:', data);
-
-    // Construct email body
-    let emailBody = `Data Pendaftaran Siswa Baru SMP Makarya\n\n`;
-    emailBody += `Data Siswa:\n`;
-    emailBody += `Nama Lengkap: ${data.fullName}\n`;
-    emailBody += `NISN: ${data.nisn}\n`;
-    emailBody += `Tanggal Lahir: ${data.birthDate}\n`;
-    emailBody += `Alamat: ${data.address}\n`;
-    emailBody += `Asal Sekolah: ${data.previousSchool}\n\n`;
-
-    emailBody += `Data Orang Tua/Wali:\n`;
-    emailBody += `Nama: ${data.parentName}\n`;
-    emailBody += `Pekerjaan: ${data.parentOccupation}\n`;
-    emailBody += `Kontak: ${data.parentContact}\n\n`;
-
-    emailBody += `Dokumen Terunggah (Nama File):\n`;
-    emailBody += `Akta Kelahiran: ${data.birthCertificate?.[0]?.name || 'Tidak ada file'}\n`;
-    emailBody += `Kartu Keluarga: ${data.familyCard?.[0]?.name || 'Tidak ada file'}\n`;
-    emailBody += `Ijazah Terakhir: ${data.lastDiploma?.[0]?.name || 'Tidak ada file'}\n\n`;
-    
-    emailBody += `Mohon data ini diproses dan diarsipkan. Format Excel tidak dilampirkan secara otomatis, data disajikan sebagai teks.`;
-
-    const adminEmail = "rockyalfarizi23@gmail.com";
-    const emailSubject = `Data Pendaftaran Siswa Baru - ${data.fullName}`;
-    const encodedEmailSubject = encodeURIComponent(emailSubject);
-    const encodedEmailBody = encodeURIComponent(emailBody);
-    
-    const mailtoLink = `mailto:${adminEmail}?subject=${encodedEmailSubject}&body=${encodedEmailBody}`;
-
-    toast({
-      title: 'Data Pendaftaran Siap Dikirim!',
-      description: (
-        <div>
-          <p>Klien email Anda akan terbuka untuk mengirim data pendaftaran ke Admin.</p>
-          <p className="mt-1">Silakan periksa detail email dan tekan tombol kirim di aplikasi email Anda.</p>
-          <p className="mt-1 text-xs text-muted-foreground">Catatan: File dokumen (Akta, KK, Ijazah) tidak terlampir otomatis. Anda perlu melampirkannya secara manual di email jika diperlukan oleh admin.</p>
-        </div>
-      ),
-      variant: 'default',
-      className: 'bg-accent text-accent-foreground',
-      duration: 7000, 
-    });
-    
-    // Wait for toast to be visible before attempting to open mail client
-    await new Promise((resolve) => setTimeout(resolve, 2500)); 
-    
-    // Open the default email client
-    if (typeof window !== "undefined") {
-      window.location.href = mailtoLink;
+    try {
+      const result = await sendRegistrationEmail(data);
+      if (result.success) {
+        toast({
+          title: 'Pendaftaran Berhasil!',
+          description: 'Data Anda telah kami terima dan simulasi pengiriman email telah dilakukan.',
+          variant: 'default',
+          className: 'bg-accent text-accent-foreground',
+        });
+        form.reset();
+        router.push(`/confirmation?name=${encodeURIComponent(data.fullName)}`);
+      } else {
+        toast({
+          title: 'Pendaftaran Gagal',
+          description: result.message || 'Terjadi kesalahan saat mengirim data.',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      console.error("Error submitting registration:", error);
+      toast({
+        title: 'Pendaftaran Gagal',
+        description: 'Terjadi kesalahan pada server. Silakan coba lagi nanti.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    // It's better to redirect after the mailto link has been actioned,
-    // or at least after a small delay to ensure the browser attempts to open it.
-    // The user will still need to manually send the email.
-    // We will redirect to confirmation page immediately after triggering mailto.
-    router.push(`/confirmation?name=${encodeURIComponent(data.fullName)}`);
-    setIsSubmitting(false);
-    // form.reset(); // Consider if resetting the form is desired here or on the confirmation page.
   }
-
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>, fieldName: keyof RegistrationFormData) => {
-    if (event.target.files && event.target.files.length > 0) {
-      form.setValue(fieldName, event.target.files);
-      form.trigger(fieldName); // Trigger validation for the field
-    }
-  };
-
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="fullName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nama Lengkap Calon Siswa</FormLabel>
+                <FormControl>
+                  <Input placeholder="Masukkan nama lengkap" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="gender"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Jenis Kelamin</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih jenis kelamin" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Laki-laki">Laki-laki</SelectItem>
+                    <SelectItem value="Perempuan">Perempuan</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="birthPlace"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Tempat Lahir</FormLabel>
+                <FormControl>
+                  <Input placeholder="Masukkan tempat lahir" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="birthDate"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel>Tanggal Lahir</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant={'outline'}
+                        className={cn(
+                          'w-full pl-3 text-left font-normal',
+                          !field.value && 'text-muted-foreground'
+                        )}
+                      >
+                        {field.value ? (
+                          format(field.value, 'PPP', { locale: id })
+                        ) : (
+                          <span>Pilih tanggal lahir</span>
+                        )}
+                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={field.value}
+                      onSelect={field.onChange}
+                      disabled={(date) =>
+                        date > new Date() || date < new Date('1900-01-01')
+                      }
+                      initialFocus
+                      locale={id}
+                    />
+                  </PopoverContent>
+                </Popover>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
         <FormField
           control={form.control}
-          name="fullName"
+          name="religion"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><User className="mr-2 h-5 w-5 text-primary" />Nama Lengkap</FormLabel>
+              <FormLabel>Agama</FormLabel>
               <FormControl>
-                <Input placeholder="Contoh: Budi Santoso" {...field} />
+                <Input placeholder="Masukkan agama" {...field} />
               </FormControl>
-              <FormDescription>Isi sesuai dengan nama di akta kelahiran.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="nisn"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center"><FileText className="mr-2 h-5 w-5 text-primary" />NISN (Nomor Induk Siswa Nasional)</FormLabel>
-              <FormControl>
-                <Input type="text" placeholder="Contoh: 0012345678" {...field} />
-              </FormControl>
-              <FormDescription>Pastikan NISN Anda valid dan terdiri dari 10 digit.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="birthDate"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center"><User className="mr-2 h-5 w-5 text-primary" />Tanggal Lahir</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
         <FormField
           control={form.control}
           name="address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex items-center"><Home className="mr-2 h-5 w-5 text-primary" />Alamat Lengkap</FormLabel>
+              <FormLabel>Alamat Lengkap</FormLabel>
               <FormControl>
-                <Textarea placeholder="Contoh: Jl. Merdeka No. 10, RT 01 RW 02, Kelurahan Bahagia, Kecamatan Sentosa, Kota Damai" {...field} />
+                <Textarea placeholder="Masukkan alamat lengkap" {...field} />
               </FormControl>
-              <FormDescription>Isi alamat tempat tinggal saat ini.</FormDescription>
+              <FormDescription>
+                Sertakan RT/RW, Kelurahan, Kecamatan, Kota/Kabupaten, dan Kode Pos.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="previousSchool"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center"><BookOpen className="mr-2 h-5 w-5 text-primary" />Asal Sekolah (SD/MI)</FormLabel>
-              <FormControl>
-                <Input placeholder="Contoh: SD Negeri 1 Makmur" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="parentName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center"><User className="mr-2 h-5 w-5 text-primary" />Nama Orang Tua/Wali</FormLabel>
-              <FormControl>
-                <Input placeholder="Contoh: Joko Susilo" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="parentOccupation"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center"><Briefcase className="mr-2 h-5 w-5 text-primary" />Pekerjaan Orang Tua/Wali</FormLabel>
-              <FormControl>
-                <Input placeholder="Contoh: Karyawan Swasta" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="parentContact"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="flex items-center"><Phone className="mr-2 h-5 w-5 text-primary" />Kontak Orang Tua/Wali (Nomor HP)</FormLabel>
-              <FormControl>
-                <Input type="tel" placeholder="Contoh: 081234567890 atau +6281234567890" {...field} />
-              </FormControl>
-              <FormDescription>Nomor HP yang bisa dihubungi.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* File Upload Fields */}
-        <Controller
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
             control={form.control}
-            name="birthCertificate"
-            render={({ fieldState: { error } }) => (
-                <FormItem>
-                <FormLabel className="flex items-center"><UploadCloud className="mr-2 h-5 w-5 text-primary" />Unggah Akta Kelahiran</FormLabel>
+            name="studentPhoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>No. HP Calon Siswa (Aktif WA)</FormLabel>
                 <FormControl>
-                    <Input
-                    type="file"
-                    accept={ACCEPTED_FILE_TYPES.join(',')}
-                    onChange={(e) => handleFileChange(e, 'birthCertificate')}
-                    className="file:text-primary file:font-semibold file:bg-primary/10 hover:file:bg-primary/20"
-                    />
+                  <Input type="tel" placeholder="08xxxxxxxxxx" {...field} />
                 </FormControl>
-                <FormDescription>File PDF, JPG, atau PNG. Maksimal 5MB.</FormDescription>
-                {error && <FormMessage>{error.message}</FormMessage>}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="studentEmail"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email Calon Siswa</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="email@contoh.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+            control={form.control}
+            name="previousSchool"
+            render={({ field }) => (
+                <FormItem>
+                <FormLabel>Asal Sekolah (SD/MI)</FormLabel>
+                <FormControl>
+                    <Input placeholder="Nama sekolah sebelumnya" {...field} />
+                </FormControl>
+                <FormMessage />
                 </FormItem>
             )}
-        />
-
-        <Controller
+            />
+            <FormField
             control={form.control}
-            name="familyCard"
-            render={({ fieldState: { error } }) => (
-                <FormItem>
-                <FormLabel className="flex items-center"><UploadCloud className="mr-2 h-5 w-5 text-primary" />Unggah Kartu Keluarga</FormLabel>
-                <FormControl>
-                    <Input
-                    type="file"
-                    accept={ACCEPTED_FILE_TYPES.join(',')}
-                    onChange={(e) => handleFileChange(e, 'familyCard')}
-                    className="file:text-primary file:font-semibold file:bg-primary/10 hover:file:bg-primary/20"
-                    />
-                </FormControl>
-                <FormDescription>File PDF, JPG, atau PNG. Maksimal 5MB.</FormDescription>
-                {error && <FormMessage>{error.message}</FormMessage>}
-                </FormItem>
+            name="lastCertificate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ijazah Terakhir</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih ijazah terakhir" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="SD/MI">Ijazah SD/MI</SelectItem>
+                    <SelectItem value="Paket A">Ijazah Paket A</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
             )}
-        />
+          />
+        </div>
 
-        <Controller
+        <h3 className="text-xl font-semibold text-primary pt-4 border-t mt-8">Data Orang Tua/Wali</h3>
+
+        <FormField
+          control={form.control}
+          name="fatherName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nama Ayah</FormLabel>
+              <FormControl>
+                <Input placeholder="Nama lengkap ayah" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
             control={form.control}
-            name="lastDiploma"
-            render={({ fieldState: { error } }) => (
-                <FormItem>
-                <FormLabel className="flex items-center"><Award className="mr-2 h-5 w-5 text-primary" />Unggah Ijazah Terakhir (SD/MI)</FormLabel>
+            name="fatherOccupation"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Pekerjaan Ayah</FormLabel>
                 <FormControl>
-                    <Input
-                    type="file"
-                    accept={ACCEPTED_FILE_TYPES.join(',')}
-                    onChange={(e) => handleFileChange(e, 'lastDiploma')}
-                    className="file:text-primary file:font-semibold file:bg-primary/10 hover:file:bg-primary/20"
-                    />
+                  <Input placeholder="Pekerjaan ayah" {...field} />
                 </FormControl>
-                <FormDescription>File PDF, JPG, atau PNG. Maksimal 5MB.</FormDescription>
-                {error && <FormMessage>{error.message}</FormMessage>}
-                </FormItem>
+                <FormMessage />
+              </FormItem>
             )}
+          />
+          <FormField
+            control={form.control}
+            name="fatherPhoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>No. HP Ayah (Aktif WA)</FormLabel>
+                <FormControl>
+                  <Input type="tel" placeholder="08xxxxxxxxxx" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="motherName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Nama Ibu</FormLabel>
+              <FormControl>
+                <Input placeholder="Nama lengkap ibu" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
         />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="motherOccupation"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Pekerjaan Ibu</FormLabel>
+                <FormControl>
+                  <Input placeholder="Pekerjaan ibu" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="motherPhoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>No. HP Ibu (Aktif WA)</FormLabel>
+                <FormControl>
+                  <Input type="tel" placeholder="08xxxxxxxxxx" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-
-        <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isSubmitting}>
-          <Mail className="mr-2 h-5 w-5" />
-          {isSubmitting ? 'Memproses...' : 'Daftar & Kirim Data ke Admin (via Email)'}
+        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Mengirim Data...
+            </>
+          ) : (
+            'Daftar Sekarang'
+          )}
         </Button>
       </form>
     </Form>
   );
 }
 
+    
