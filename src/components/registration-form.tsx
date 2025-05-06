@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, type ChangeEvent, type FormEvent } from 'react';
-import { UploadCloud, User, Home, BookOpen, FileText, Briefcase, Phone } from 'lucide-react';
+import { UploadCloud, User, Home, BookOpen, FileText, Briefcase, Phone, Award } from 'lucide-react';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
@@ -46,6 +46,13 @@ const formSchema = z.object({
       (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
       "Format file tidak didukung. Hanya .jpg, .jpeg, .png, dan .pdf yang diperbolehkan."
     ),
+  lastDiploma: z.any()
+    .refine((files) => files?.[0], "Ijazah terakhir wajib diunggah.")
+    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Ukuran maksimal file adalah 5MB.`)
+    .refine(
+      (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
+      "Format file tidak didukung. Hanya .jpg, .jpeg, .png, dan .pdf yang diperbolehkan."
+    ),
 });
 
 type RegistrationFormData = z.infer<typeof formSchema>;
@@ -66,6 +73,9 @@ export default function RegistrationForm() {
       parentName: '',
       parentOccupation: '',
       parentContact: '',
+      birthCertificate: undefined,
+      familyCard: undefined,
+      lastDiploma: undefined,
     },
   });
 
@@ -255,6 +265,27 @@ export default function RegistrationForm() {
                 </FormItem>
             )}
         />
+
+        <Controller
+            control={form.control}
+            name="lastDiploma"
+            render={({ fieldState: { error } }) => (
+                <FormItem>
+                <FormLabel className="flex items-center"><Award className="mr-2 h-5 w-5 text-primary" />Unggah Ijazah Terakhir (SD/MI)</FormLabel>
+                <FormControl>
+                    <Input
+                    type="file"
+                    accept={ACCEPTED_FILE_TYPES.join(',')}
+                    onChange={(e) => handleFileChange(e, 'lastDiploma')}
+                    className="file:text-primary file:font-semibold file:bg-primary/10 hover:file:bg-primary/20"
+                    />
+                </FormControl>
+                <FormDescription>File PDF, JPG, atau PNG. Maksimal 5MB.</FormDescription>
+                {error && <FormMessage>{error.message}</FormMessage>}
+                </FormItem>
+            )}
+        />
+
 
         <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isSubmitting}>
           {isSubmitting ? 'Mengirim...' : 'Daftar Sekarang'}
