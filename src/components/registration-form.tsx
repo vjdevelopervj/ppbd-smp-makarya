@@ -83,10 +83,12 @@ export default function RegistrationForm() {
   async function onSubmit(data: RegistrationFormData) {
     setIsSubmitting(true);
     
+    // Simulate a brief processing delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     console.log('Form submitted:', data);
 
+    // Construct email body
     let emailBody = `Data Pendaftaran Siswa Baru SMP Makarya\n\n`;
     emailBody += `Data Siswa:\n`;
     emailBody += `Nama Lengkap: ${data.fullName}\n`;
@@ -120,6 +122,7 @@ export default function RegistrationForm() {
         <div>
           <p>Klien email Anda akan terbuka untuk mengirim data pendaftaran ke Admin.</p>
           <p className="mt-1">Silakan periksa detail email dan tekan tombol kirim di aplikasi email Anda.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Catatan: File dokumen (Akta, KK, Ijazah) tidak terlampir otomatis. Anda perlu melampirkannya secara manual di email jika diperlukan oleh admin.</p>
         </div>
       ),
       variant: 'default',
@@ -127,21 +130,27 @@ export default function RegistrationForm() {
       duration: 7000, 
     });
     
+    // Wait for toast to be visible before attempting to open mail client
     await new Promise((resolve) => setTimeout(resolve, 2500)); 
     
+    // Open the default email client
     if (typeof window !== "undefined") {
       window.location.href = mailtoLink;
     }
     
+    // It's better to redirect after the mailto link has been actioned,
+    // or at least after a small delay to ensure the browser attempts to open it.
+    // The user will still need to manually send the email.
+    // We will redirect to confirmation page immediately after triggering mailto.
     router.push(`/confirmation?name=${encodeURIComponent(data.fullName)}`);
     setIsSubmitting(false);
-    // form.reset(); // Pertimbangkan apakah reset form diinginkan di sini atau di halaman konfirmasi.
+    // form.reset(); // Consider if resetting the form is desired here or on the confirmation page.
   }
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>, fieldName: keyof RegistrationFormData) => {
     if (event.target.files && event.target.files.length > 0) {
       form.setValue(fieldName, event.target.files);
-      form.trigger(fieldName); 
+      form.trigger(fieldName); // Trigger validation for the field
     }
   };
 
@@ -265,6 +274,7 @@ export default function RegistrationForm() {
           )}
         />
 
+        {/* File Upload Fields */}
         <Controller
             control={form.control}
             name="birthCertificate"
