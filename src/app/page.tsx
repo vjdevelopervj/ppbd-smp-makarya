@@ -1,20 +1,9 @@
-import RegistrationForm from '@/components/registration-form';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import SchoolProfile from '@/components/school-profile';
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="flex justify-center items-start py-8">
-      <Card className="w-full max-w-2xl shadow-xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold text-primary">Formulir Pendaftaran Siswa</CardTitle>
-          <CardDescription className="text-muted-foreground">
-            Selamat datang di SMP Makarya. Silakan isi formulir di bawah ini dengan data yang benar.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <RegistrationForm />
-        </CardContent>
-      </Card>
+    <div className="space-y-12">
+      <SchoolProfile />
     </div>
   );
 }

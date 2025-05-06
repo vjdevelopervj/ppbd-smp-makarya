@@ -11,8 +11,9 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: 'Makarya Admission',
-  description: 'Pendaftaran Siswa SMP Makarya',
+  title: 'SMP Makarya - Sekolah Menengah Pertama Unggulan',
+  description: 'Selamat datang di website resmi SMP Makarya. Temukan informasi pendaftaran, profil sekolah, dan kegiatan kami.',
+  keywords: 'SMP Makarya, sekolah menengah pertama, pendaftaran siswa baru, profil sekolah, pendidikan',
 };
 
 export default function RootLayout({
@@ -22,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id">
-      <body className={`${geistSans.variable} font-sans antialiased flex flex-col min-h-screen`}>
+      <body className={`${geistSans.variable} font-sans antialiased flex flex-col min-h-screen bg-background`}>
         <Header />
         <main className="flex-grow container mx-auto px-4 py-8">
           {children}
