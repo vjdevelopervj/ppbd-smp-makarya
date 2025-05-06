@@ -1,4 +1,6 @@
-import { Mail, MapPin, Phone } from 'lucide-react';
+
+import { Mail, MapPin, Phone, Shield } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Footer() {
   return (
@@ -31,15 +33,19 @@ export default function Footer() {
           <div>
             <h3 className="text-lg font-semibold text-primary mb-3">Tautan Cepat</h3>
             <ul className="space-y-2 text-sm">
-              <li><a href="/pendaftaran" className="hover:text-accent transition-colors">Pendaftaran</a></li>
-              <li><a href="/#tentang-kami" className="hover:text-accent transition-colors">Tentang Kami</a></li>
-              <li><a href="/#fasilitas" className="hover:text-accent transition-colors">Fasilitas</a></li>
-              <li><a href="/#prestasi" className="hover:text-accent transition-colors">Prestasi</a></li>
+              <li><Link href="/pendaftaran" className="hover:text-accent transition-colors">Pendaftaran</Link></li>
+              <li><Link href="/#tentang-kami" className="hover:text-accent transition-colors">Tentang Kami</Link></li>
+              <li><Link href="/kontak" className="hover:text-accent transition-colors">Hubungi Kami</Link></li>
             </ul>
           </div>
         </div>
         <div className="text-center mt-8 pt-6 border-t border-border">
           <p className="text-sm">&copy; {new Date().getFullYear()} SMP Makarya. Hak Cipta Dilindungi.</p>
+          <p className="text-xs mt-2">
+            <Link href="/admin/login" className="text-muted-foreground hover:text-primary transition-colors flex items-center justify-center">
+              <Shield className="mr-1 h-3 w-3" /> Admin Login
+            </Link>
+          </p>
         </div>
       </div>
     </footer>

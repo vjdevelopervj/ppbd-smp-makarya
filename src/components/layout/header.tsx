@@ -1,6 +1,7 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
-import { School, Home, UserPlus } from 'lucide-react';
+import { School, Home, UserPlus, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Header() {
@@ -15,11 +16,17 @@ export default function Header() {
           </div>
           <h1 className="text-2xl font-bold text-primary-foreground">SMP Makarya</h1>
         </Link>
-        <nav className="flex items-center space-x-2 sm:space-x-4">
+        <nav className="flex items-center space-x-1 sm:space-x-2">
           <Button variant="ghost" asChild className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground">
             <Link href="/" className="flex items-center">
               <Home className="mr-1 sm:mr-2 h-4 w-4" />
               <span className="text-sm sm:text-base">Beranda</span>
+            </Link>
+          </Button>
+           <Button variant="ghost" asChild className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground">
+            <Link href="/kontak" className="flex items-center">
+              <MessageCircle className="mr-1 sm:mr-2 h-4 w-4" />
+              <span className="text-sm sm:text-base">Kontak</span>
             </Link>
           </Button>
           <Button variant="secondary" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
