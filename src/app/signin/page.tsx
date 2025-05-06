@@ -1,35 +1,11 @@
+
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, type ChangeEvent } from 'react';
-import { LogIn, Mail, KeyRound } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
-
-const signInSchema = z.object({
-  email: z.string().email({ message: 'Format email tidak valid.' }),
-  password: z.string().min(6, { message: 'Password minimal 6 karakter.' }),
-});
-
-type SignInFormData = z.infer<typeof signInSchema>;
-
-// Demo user credentials
-const DEMO_USER_EMAIL = "siswa@smpmakarya.sch.id";
-const DEMO_USER_PASSWORD = "siswa123";
+import { LogIn } from 'lucide-react';
 
 // Google Logo SVG component
 const GoogleLogo = () => (
@@ -47,73 +23,44 @@ export default function SignInPage() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<SignInFormData>({
-    resolver: zodResolver(signInSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  });
+  const handleGoogleSignIn = () => {
+    // In a real application, this would initiate the Google OAuth flow.
+    // For this demo, we'll simulate a successful sign-in and store a flag.
+    
+    // Simulate successful Google Sign-In
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('isUserSignedIn', 'true');
+      // For demo, we'll use a generic Google user email.
+      // In a real app, this would come from the Google Auth response.
+      localStorage.setItem('userEmail', 'user@google.com'); 
+    }
 
-  async function onSubmit(data: SignInFormData) {
-    setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    console.log('User sign-in attempt:', data);
+    toast({
+      title: "Sign In dengan Google",
+      description: (
+        <div>
+          <p>Anda akan diarahkan setelah sign in dengan Google berhasil.</p>
+          <p className="mt-2 text-xs">
+            Dalam aplikasi nyata, mengklik tombol ini akan mengarahkan Anda ke halaman login Google. Setelah berhasil, Anda akan kembali ke aplikasi kami.
+          </p>
+          <p className="mt-1 text-xs">
+            Untuk demo ini, kami menyimulasikan proses tersebut.
+          </p>
+        </div>
+      ),
+      duration: 7000, 
+    });
 
-    if (data.email === DEMO_USER_EMAIL && data.password === DEMO_USER_PASSWORD) {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('isUserSignedIn', 'true');
-        localStorage.setItem('userEmail', data.email);
-      }
-
-      toast({
-          title: 'Sign In Berhasil!',
-          description: 'Selamat datang kembali! Anda akan diarahkan.',
-          variant: 'default',
-          className: 'bg-accent text-accent-foreground',
-      });
-
+    // Simulate redirection after a short delay
+    setTimeout(() => {
       const redirectUrl = searchParams.get('redirect');
       if (redirectUrl) {
         router.push(redirectUrl);
       } else {
         router.push('/');
       }
-      form.reset();
-    } else {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('isUserSignedIn');
-        localStorage.removeItem('userEmail');
-      }
-      toast({
-          title: 'Sign In Gagal',
-          description: 'Email atau password yang Anda masukkan salah. Silakan coba lagi.',
-          variant: 'destructive',
-      });
-    }
-    setIsSubmitting(false);
-  }
-
-  const handleGoogleSignIn = () => {
-    // In a real application, this would initiate the Google OAuth flow.
-    // For this demo, we'll just show a toast.
-    toast({
-      title: "Fitur 'Sign In dengan Google'",
-      description: (
-        <div>
-          <p>Ini adalah placeholder untuk fitur Sign In dengan Google.</p>
-          <p className="mt-2 text-xs">
-            Dalam aplikasi nyata, mengklik tombol ini akan mengarahkan Anda ke halaman login Google, di mana Anda dapat memilih akun Google yang tersimpan di browser Anda.
-          </p>
-          <p className="mt-1 text-xs">
-            Untuk demo saat ini, silakan gunakan form email dan password di atas.
-          </p>
-        </div>
-      ),
-      duration: 10000, // Show longer for more info
-    });
+    }, 2000); // Delay to allow toast to be seen
   };
 
   return (
@@ -125,81 +72,26 @@ export default function SignInPage() {
           </div>
           <CardTitle className="text-3xl font-bold text-primary">Sign In</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Masuk untuk melanjutkan. Untuk demo, gunakan kredensial di bawah atau coba tombol &quot;Sign In dengan Google&quot;.
-            <br />
-            <span className="text-xs">(Email: <strong>siswa@smpmakarya.sch.id</strong> | Password: <strong>siswa123</strong>)</span>
+            Silakan masuk menggunakan akun Google Anda untuk melanjutkan.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           <Button 
             variant="outline" 
-            className="w-full" 
+            className="w-full py-6 text-lg" 
             onClick={handleGoogleSignIn}
             aria-label="Sign In dengan Google"
           >
             <GoogleLogo />
             Sign In dengan Google
           </Button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <Separator />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Atau lanjutkan dengan
-              </span>
-            </div>
-          </div>
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center">
-                      <Mail className="mr-2 h-5 w-5 text-primary" /> Email
-                    </FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="email@anda.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center">
-                        <KeyRound className="mr-2 h-5 w-5 text-primary" /> Password
-                    </FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="********" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  'Memproses...'
-                ) : (
-                  <>
-                    <LogIn className="mr-2 h-5 w-5" /> Sign In dengan Email
-                  </>
-                )}
-              </Button>
-            </form>
-          </Form>
+          
           <p className="text-center text-sm text-muted-foreground">
-            Belum punya akun? Untuk demo, gunakan kredensial di atas. Fitur pendaftaran akun baru belum tersedia.
+            Dengan melanjutkan, Anda menyetujui Persyaratan Layanan dan Kebijakan Privasi kami.
           </p>
         </CardContent>
       </Card>
     </div>
   );
 }
+
