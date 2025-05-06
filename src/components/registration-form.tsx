@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -81,22 +82,61 @@ export default function RegistrationForm() {
 
   async function onSubmit(data: RegistrationFormData) {
     setIsSubmitting(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    
+    // Simulate API call delay
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
     console.log('Form submitted:', data);
 
-    // In a real app, you would send the data to a server here.
-    // For now, we'll just show a success toast and redirect.
+    // Construct WhatsApp message
+    let whatsappMessage = `*Data Pendaftaran Siswa Baru SMP Makarya*\n\n`;
+    whatsappMessage += `*Data Siswa:*\n`;
+    whatsappMessage += `Nama Lengkap: ${data.fullName}\n`;
+    whatsappMessage += `NISN: ${data.nisn}\n`;
+    whatsappMessage += `Tanggal Lahir: ${data.birthDate}\n`; // Consider formatting date if needed
+    whatsappMessage += `Alamat: ${data.address}\n`;
+    whatsappMessage += `Asal Sekolah: ${data.previousSchool}\n\n`;
+
+    whatsappMessage += `*Data Orang Tua/Wali:*\n`;
+    whatsappMessage += `Nama: ${data.parentName}\n`;
+    whatsappMessage += `Pekerjaan: ${data.parentOccupation}\n`;
+    whatsappMessage += `Kontak: ${data.parentContact}\n\n`;
+
+    whatsappMessage += `*Dokumen Terunggah (Nama File):*\n`;
+    whatsappMessage += `Akta Kelahiran: ${data.birthCertificate?.[0]?.name || 'Tidak ada file'}\n`;
+    whatsappMessage += `Kartu Keluarga: ${data.familyCard?.[0]?.name || 'Tidak ada file'}\n`;
+    whatsappMessage += `Ijazah Terakhir: ${data.lastDiploma?.[0]?.name || 'Tidak ada file'}\n\n`;
+    
+    whatsappMessage += `_Mohon data ini diproses dan diarsipkan dalam format Excel._`;
+
+    const adminPhoneNumber = "6285881585749"; // Format: countrycode + number without leading 0 or +
+    const encodedMessage = encodeURIComponent(whatsappMessage);
+    const whatsappUrl = `https://wa.me/${adminPhoneNumber}?text=${encodedMessage}`;
+
+    // Open WhatsApp link in a new tab
+    if (typeof window !== "undefined") {
+      window.open(whatsappUrl, '_blank');
+    }
+
     toast({
-      title: 'Pendaftaran Berhasil!',
-      description: 'Data Anda telah berhasil dikirim. Terima kasih telah mendaftar.',
-      variant: 'default', // ShadCN 'default' uses primary, we want accent for success
+      title: 'Pendaftaran Diproses!',
+      description: (
+        <div>
+          <p>Data Anda sedang disiapkan untuk dikirim ke Admin via WhatsApp.</p>
+          <p className="mt-1">Anda akan diarahkan ke halaman konfirmasi setelah ini.</p>
+        </div>
+      ),
+      variant: 'default',
       className: 'bg-accent text-accent-foreground',
+      duration: 5000, // Increased duration for user to read
     });
+    
+    // Wait a bit for user to potentially interact with WhatsApp or see the toast
+    await new Promise((resolve) => setTimeout(resolve, 1500)); 
     
     router.push(`/confirmation?name=${encodeURIComponent(data.fullName)}`);
     setIsSubmitting(false);
+    // form.reset(); // Reset form after successful submission and redirection
   }
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>, fieldName: keyof RegistrationFormData) => {
@@ -288,9 +328,10 @@ export default function RegistrationForm() {
 
 
         <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isSubmitting}>
-          {isSubmitting ? 'Mengirim...' : 'Daftar Sekarang'}
+          {isSubmitting ? 'Mengirim...' : 'Daftar Sekarang & Kirim ke Admin'}
         </Button>
       </form>
     </Form>
   );
 }
+
