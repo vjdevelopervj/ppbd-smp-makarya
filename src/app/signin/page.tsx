@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, type ChangeEvent } from 'react';
 import { LogIn, Mail, KeyRound, UserPlus } from 'lucide-react';
 import Link from 'next/link';
@@ -31,6 +31,7 @@ type SignInFormData = z.infer<typeof signInSchema>;
 export default function SignInPage() {
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<SignInFormData>({
@@ -47,17 +48,41 @@ export default function SignInPage() {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     console.log('User sign-in attempt:', data);
 
-    // In a real app, you would verify credentials.
-    // For this example, let's assume any valid email and password works for demonstration.
-    // You might want to check against a user database.
-    toast({
-        title: 'Sign In Berhasil!',
-        description: 'Selamat datang kembali! Anda akan diarahkan ke halaman utama.',
-        variant: 'default',
-        className: 'bg-accent text-accent-foreground',
-    });
-    router.push('/'); // Redirect to homepage or dashboard after sign-in
-    form.reset();
+    // In a real app, you would verify credentials against a backend.
+    // For this example, we'll consider any non-empty email/password valid for demo.
+    if (data.email && data.password) {
+      // Simulate successful sign-in
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('isUserSignedIn', 'true');
+        localStorage.setItem('userEmail', data.email);
+      }
+
+      toast({
+          title: 'Sign In Berhasil!',
+          description: 'Selamat datang kembali! Anda akan diarahkan.',
+          variant: 'default',
+          className: 'bg-accent text-accent-foreground',
+      });
+
+      const redirectUrl = searchParams.get('redirect');
+      if (redirectUrl) {
+        router.push(redirectUrl);
+      } else {
+        router.push('/'); // Default redirect to homepage
+      }
+      form.reset();
+    } else {
+      // This case should ideally be caught by Zod, but as a fallback:
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('isUserSignedIn');
+        localStorage.removeItem('userEmail');
+      }
+      toast({
+          title: 'Sign In Gagal',
+          description: 'Email atau password tidak valid. Silakan coba lagi.',
+          variant: 'destructive',
+      });
+    }
     setIsSubmitting(false);
   }
 
@@ -70,7 +95,7 @@ export default function SignInPage() {
           </div>
           <CardTitle className="text-3xl font-bold text-primary">Sign In</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Masuk ke akun Anda untuk melanjutkan.
+            Masuk ke akun Anda untuk melanjutkan. Jika Anda ingin mendaftar, Anda harus Sign In terlebih dahulu.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
@@ -118,10 +143,12 @@ export default function SignInPage() {
             </form>
           </Form>
           <p className="text-center text-sm text-muted-foreground">
-            Belum punya akun?{' '}
-            <Link href="/pendaftaran" className="font-medium text-primary hover:underline">
+            Belum punya akun? Anda bisa menggunakan akun Google atau email aktif lainnya untuk Sign In.{' '}
+            {/* Link to registration page might be confusing if sign-in is a prerequisite for registration.
+                Keeping it but wording suggests using existing accounts. */}
+            {/* <Link href="/pendaftaran" className="font-medium text-primary hover:underline">
               Daftar di sini
-            </Link>
+            </Link> */}
           </p>
         </CardContent>
       </Card>
