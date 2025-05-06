@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,6 +27,10 @@ const signInSchema = z.object({
 
 type SignInFormData = z.infer<typeof signInSchema>;
 
+// Demo user credentials
+const DEMO_USER_EMAIL = "siswa@smpmakarya.sch.id";
+const DEMO_USER_PASSWORD = "siswa123";
+
 export default function SignInPage() {
   const { toast } = useToast();
   const router = useRouter();
@@ -40,6 +43,7 @@ export default function SignInPage() {
       email: '',
       password: '',
     },
+    // mode: 'onBlur' // Optional: For more "real-time" validation feedback on field blur
   });
 
   async function onSubmit(data: SignInFormData) {
@@ -48,9 +52,7 @@ export default function SignInPage() {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     console.log('User sign-in attempt:', data);
 
-    // In a real app, you would verify credentials against a backend.
-    // For this example, we'll consider any non-empty email/password valid for demo.
-    if (data.email && data.password) {
+    if (data.email === DEMO_USER_EMAIL && data.password === DEMO_USER_PASSWORD) {
       // Simulate successful sign-in
       if (typeof window !== 'undefined') {
         localStorage.setItem('isUserSignedIn', 'true');
@@ -72,16 +74,17 @@ export default function SignInPage() {
       }
       form.reset();
     } else {
-      // This case should ideally be caught by Zod, but as a fallback:
       if (typeof window !== 'undefined') {
         localStorage.removeItem('isUserSignedIn');
         localStorage.removeItem('userEmail');
       }
       toast({
           title: 'Sign In Gagal',
-          description: 'Email atau password tidak valid. Silakan coba lagi.',
+          description: 'Email atau password yang Anda masukkan salah. Silakan coba lagi.',
           variant: 'destructive',
       });
+      // Optionally clear only the password field on failed login attempt
+      // form.setValue('password', ''); 
     }
     setIsSubmitting(false);
   }
@@ -96,6 +99,8 @@ export default function SignInPage() {
           <CardTitle className="text-3xl font-bold text-primary">Sign In</CardTitle>
           <CardDescription className="text-muted-foreground">
             Masuk ke akun Anda untuk melanjutkan. Jika Anda ingin mendaftar, Anda harus Sign In terlebih dahulu.
+            <br />
+            <span className="text-xs">(Gunakan email: <strong>siswa@smpmakarya.sch.id</strong> dan password: <strong>siswa123</strong> untuk demo)</span>
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
@@ -143,12 +148,7 @@ export default function SignInPage() {
             </form>
           </Form>
           <p className="text-center text-sm text-muted-foreground">
-            Belum punya akun? Anda bisa menggunakan akun Google atau email aktif lainnya untuk Sign In.{' '}
-            {/* Link to registration page might be confusing if sign-in is a prerequisite for registration.
-                Keeping it but wording suggests using existing accounts. */}
-            {/* <Link href="/pendaftaran" className="font-medium text-primary hover:underline">
-              Daftar di sini
-            </Link> */}
+            Belum punya akun? Untuk keperluan demo, silakan gunakan kredensial yang disediakan di atas.
           </p>
         </CardContent>
       </Card>
