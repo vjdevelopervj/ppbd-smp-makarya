@@ -1,7 +1,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { School, Home, UserPlus, MessageCircle } from 'lucide-react';
+import { School, Home, UserPlus, MessageCircle, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Header() {
@@ -27,6 +27,12 @@ export default function Header() {
             <Link href="/kontak" className="flex items-center">
               <MessageCircle className="mr-1 sm:mr-2 h-4 w-4" />
               <span className="text-sm sm:text-base">Kontak</span>
+            </Link>
+          </Button>
+          <Button variant="ghost" asChild className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground">
+            <Link href="/signin" className="flex items-center">
+              <LogIn className="mr-1 sm:mr-2 h-4 w-4" />
+              <span className="text-sm sm:text-base">Sign In</span>
             </Link>
           </Button>
           <Button variant="secondary" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
