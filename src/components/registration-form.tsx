@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, type ChangeEvent } from 'react';
-import { UploadCloud, User, Home, BookOpen, FileText, Briefcase, Phone, Award } from 'lucide-react';
+import { UploadCloud, User, Home, BookOpen, FileText, Briefcase, Phone, Award, Mail } from 'lucide-react';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
@@ -83,43 +83,43 @@ export default function RegistrationForm() {
   async function onSubmit(data: RegistrationFormData) {
     setIsSubmitting(true);
     
-    // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
 
     console.log('Form submitted:', data);
 
-    // Construct WhatsApp message
-    let whatsappMessage = `*Data Pendaftaran Siswa Baru SMP Makarya*\n\n`;
-    whatsappMessage += `*Data Siswa:*\n`;
-    whatsappMessage += `Nama Lengkap: ${data.fullName}\n`;
-    whatsappMessage += `NISN: ${data.nisn}\n`;
-    whatsappMessage += `Tanggal Lahir: ${data.birthDate}\n`;
-    whatsappMessage += `Alamat: ${data.address}\n`;
-    whatsappMessage += `Asal Sekolah: ${data.previousSchool}\n\n`;
+    let emailBody = `Data Pendaftaran Siswa Baru SMP Makarya\n\n`;
+    emailBody += `Data Siswa:\n`;
+    emailBody += `Nama Lengkap: ${data.fullName}\n`;
+    emailBody += `NISN: ${data.nisn}\n`;
+    emailBody += `Tanggal Lahir: ${data.birthDate}\n`;
+    emailBody += `Alamat: ${data.address}\n`;
+    emailBody += `Asal Sekolah: ${data.previousSchool}\n\n`;
 
-    whatsappMessage += `*Data Orang Tua/Wali:*\n`;
-    whatsappMessage += `Nama: ${data.parentName}\n`;
-    whatsappMessage += `Pekerjaan: ${data.parentOccupation}\n`;
-    whatsappMessage += `Kontak: ${data.parentContact}\n\n`;
+    emailBody += `Data Orang Tua/Wali:\n`;
+    emailBody += `Nama: ${data.parentName}\n`;
+    emailBody += `Pekerjaan: ${data.parentOccupation}\n`;
+    emailBody += `Kontak: ${data.parentContact}\n\n`;
 
-    whatsappMessage += `*Dokumen Terunggah (Nama File):*\n`;
-    whatsappMessage += `Akta Kelahiran: ${data.birthCertificate?.[0]?.name || 'Tidak ada file'}\n`;
-    whatsappMessage += `Kartu Keluarga: ${data.familyCard?.[0]?.name || 'Tidak ada file'}\n`;
-    whatsappMessage += `Ijazah Terakhir: ${data.lastDiploma?.[0]?.name || 'Tidak ada file'}\n\n`;
+    emailBody += `Dokumen Terunggah (Nama File):\n`;
+    emailBody += `Akta Kelahiran: ${data.birthCertificate?.[0]?.name || 'Tidak ada file'}\n`;
+    emailBody += `Kartu Keluarga: ${data.familyCard?.[0]?.name || 'Tidak ada file'}\n`;
+    emailBody += `Ijazah Terakhir: ${data.lastDiploma?.[0]?.name || 'Tidak ada file'}\n\n`;
     
-    whatsappMessage += `_Mohon data ini diproses dan diarsipkan._`; // Simplified message for admin
+    emailBody += `Mohon data ini diproses dan diarsipkan. Format Excel tidak dilampirkan secara otomatis, data disajikan sebagai teks.`;
 
-    const adminPhoneNumber = "6285881585749"; 
-    const encodedMessage = encodeURIComponent(whatsappMessage);
-    const whatsappUrl = `https://wa.me/${adminPhoneNumber}?text=${encodedMessage}`;
+    const adminEmail = "rockyalfarizi2@gmail.com";
+    const emailSubject = `Data Pendaftaran Siswa Baru - ${data.fullName}`;
+    const encodedEmailSubject = encodeURIComponent(emailSubject);
+    const encodedEmailBody = encodeURIComponent(emailBody);
+    
+    const mailtoLink = `mailto:${adminEmail}?subject=${encodedEmailSubject}&body=${encodedEmailBody}`;
 
-    // Display toast informing user about WhatsApp redirection and action needed
     toast({
       title: 'Data Pendaftaran Siap Dikirim!',
       description: (
         <div>
-          <p>Anda akan diarahkan ke WhatsApp untuk mengirim data pendaftaran ke Admin.</p>
-          <p className="mt-1">Silakan tekan tombol kirim di WhatsApp.</p>
+          <p>Klien email Anda akan terbuka untuk mengirim data pendaftaran ke Admin.</p>
+          <p className="mt-1">Silakan periksa detail email dan tekan tombol kirim di aplikasi email Anda.</p>
         </div>
       ),
       variant: 'default',
@@ -127,20 +127,15 @@ export default function RegistrationForm() {
       duration: 7000, 
     });
     
-    // Wait a bit for user to read the toast before redirecting
     await new Promise((resolve) => setTimeout(resolve, 2500)); 
     
-    // Open WhatsApp link in a new tab
     if (typeof window !== "undefined") {
-      window.open(whatsappUrl, '_blank');
+      window.location.href = mailtoLink;
     }
     
-    // Redirect to confirmation page after attempting to open WhatsApp
-    // This happens regardless of whether the WhatsApp message was actually sent,
-    // as we can't track that from the browser.
     router.push(`/confirmation?name=${encodeURIComponent(data.fullName)}`);
     setIsSubmitting(false);
-    // form.reset(); // Consider if form reset is desired here or on confirmation page.
+    // form.reset(); // Pertimbangkan apakah reset form diinginkan di sini atau di halaman konfirmasi.
   }
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>, fieldName: keyof RegistrationFormData) => {
@@ -332,7 +327,8 @@ export default function RegistrationForm() {
 
 
         <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isSubmitting}>
-          {isSubmitting ? 'Memproses...' : 'Daftar & Siapkan Data untuk Admin'}
+          <Mail className="mr-2 h-5 w-5" />
+          {isSubmitting ? 'Memproses...' : 'Daftar & Kirim Data ke Admin (via Email)'}
         </Button>
       </form>
     </Form>
