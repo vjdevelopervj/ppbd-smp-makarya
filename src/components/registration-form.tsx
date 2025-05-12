@@ -42,7 +42,6 @@ const registrationFormSchema = z.object({
   religion: z.string().min(3, { message: 'Agama minimal 3 karakter.' }),
   address: z.string().min(10, { message: 'Alamat lengkap minimal 10 karakter.' }),
   studentPhoneNumber: z.string().min(10, { message: 'Nomor telepon minimal 10 digit.' }).regex(/^\d+$/, { message: "Nomor telepon hanya boleh berisi angka." }),
-  studentEmail: z.string().email({ message: 'Format email tidak valid.' }),
   previousSchool: z.string().min(3, { message: 'Asal sekolah minimal 3 karakter.' }),
   lastCertificate: z.enum(['SD/MI', 'Paket A'], { required_error: 'Ijazah terakhir harus dipilih.'}),
   fatherName: z.string().min(3, { message: 'Nama ayah minimal 3 karakter.' }),
@@ -51,6 +50,7 @@ const registrationFormSchema = z.object({
   motherName: z.string().min(3, { message: 'Nama ibu minimal 3 karakter.' }),
   motherOccupation: z.string().min(3, { message: 'Pekerjaan ibu minimal 3 karakter.' }),
   motherPhoneNumber: z.string().min(10, { message: 'Nomor telepon minimal 10 digit.' }).regex(/^\d+$/, { message: "Nomor telepon hanya boleh berisi angka." }),
+  parentEmail: z.string().email({ message: 'Format email tidak valid.' }),
 });
 
 export type RegistrationFormData = z.infer<typeof registrationFormSchema>;
@@ -68,7 +68,6 @@ export default function RegistrationForm() {
       religion: '',
       address: '',
       studentPhoneNumber: '',
-      studentEmail: '',
       previousSchool: '',
       fatherName: '',
       fatherOccupation: '',
@@ -76,6 +75,7 @@ export default function RegistrationForm() {
       motherName: '',
       motherOccupation: '',
       motherPhoneNumber: '',
+      parentEmail: '',
     },
   });
 
@@ -114,6 +114,7 @@ export default function RegistrationForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        {/* Data Siswa */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
@@ -240,8 +241,7 @@ export default function RegistrationForm() {
           )}
         />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
+        <FormField
             control={form.control}
             name="studentPhoneNumber"
             render={({ field }) => (
@@ -254,20 +254,7 @@ export default function RegistrationForm() {
               </FormItem>
             )}
           />
-          <FormField
-            control={form.control}
-            name="studentEmail"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email Calon Siswa</FormLabel>
-                <FormControl>
-                  <Input type="email" placeholder="email@contoh.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+       
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
@@ -306,6 +293,7 @@ export default function RegistrationForm() {
           />
         </div>
 
+        {/* Data Orang Tua/Wali */}
         <h3 className="text-xl font-semibold text-primary pt-4 border-t mt-8">Data Orang Tua/Wali</h3>
 
         <FormField
@@ -391,6 +379,21 @@ export default function RegistrationForm() {
             )}
           />
         </div>
+        
+        <FormField
+          control={form.control}
+          name="parentEmail"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email Orang Tua/Wali</FormLabel>
+              <FormControl>
+                <Input type="email" placeholder="email.orangtua@contoh.com" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
 
         <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
           {isSubmitting ? (
@@ -406,6 +409,3 @@ export default function RegistrationForm() {
     </Form>
   );
 }
-
-    
-    

@@ -36,7 +36,7 @@ export async function sendRegistrationEmail(
   //   from: senderEmail, // sender address
   //   to: recipientEmail, // list of receivers
   //   subject: `Pendaftaran Siswa Baru: ${formData.fullName}`, // Subject line
-  //   html: `
+  //   html: \`
   //     <h1>Data Pendaftaran Siswa Baru</h1>
   //     <p><strong>Nama Lengkap:</strong> ${formData.fullName}</p>
   //     <p><strong>Jenis Kelamin:</strong> ${formData.gender}</p>
@@ -44,7 +44,6 @@ export async function sendRegistrationEmail(
   //     <p><strong>Agama:</strong> ${formData.religion}</p>
   //     <p><strong>Alamat:</strong> ${formData.address}</p>
   //     <p><strong>No. HP Siswa:</strong> ${formData.studentPhoneNumber}</p>
-  //     <p><strong>Email Siswa:</strong> ${formData.studentEmail}</p>
   //     <p><strong>Asal Sekolah:</strong> ${formData.previousSchool}</p>
   //     <p><strong>Ijazah Terakhir:</strong> ${formData.lastCertificate}</p>
   //     <h2>Data Orang Tua</h2>
@@ -54,7 +53,8 @@ export async function sendRegistrationEmail(
   //     <p><strong>Nama Ibu:</strong> ${formData.motherName}</p>
   //     <p><strong>Pekerjaan Ibu:</strong> ${formData.motherOccupation}</p>
   //     <p><strong>No. HP Ibu:</strong> ${formData.motherPhoneNumber}</p>
-  //   `,
+  //     <p><strong>Email Orang Tua/Wali:</strong> ${formData.parentEmail}</p>
+  //   \`,
   // };
   //
   // try {
@@ -71,5 +71,3 @@ export async function sendRegistrationEmail(
   // For now, we'll just return a success message as if the email was sent.
   return { success: true, message: 'Email sent successfully (simulated)' };
 }
-
-    
