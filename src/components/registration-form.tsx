@@ -85,13 +85,14 @@ export default function RegistrationForm() {
       const result = await sendRegistrationEmail(data);
       if (result.success) {
         toast({
-          title: 'Pendaftaran Berhasil!',
-          description: 'Data Anda telah kami terima dan simulasi pengiriman email telah dilakukan.',
+          title: 'Pendaftaran Diproses!',
+          description: 'Data Anda telah kami terima. Anda akan diarahkan ke sesi tes.',
           variant: 'default',
           className: 'bg-accent text-accent-foreground',
         });
         form.reset();
-        router.push(`/confirmation?name=${encodeURIComponent(data.fullName)}`);
+        // Redirect to quiz page instead of confirmation page
+        router.push(`/quiz?name=${encodeURIComponent(data.fullName)}`);
       } else {
         toast({
           title: 'Pendaftaran Gagal',
@@ -399,10 +400,10 @@ export default function RegistrationForm() {
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Mengirim Data...
+              Memproses Pendaftaran...
             </>
           ) : (
-            'Daftar Sekarang'
+            'Daftar & Lanjut ke Tes'
           )}
         </Button>
       </form>
