@@ -6,14 +6,15 @@ import type { RegistrationFormData } from '@/components/registration-form';
 export async function sendRegistrationEmail(
   formData: RegistrationFormData
 ): Promise<{ success: boolean; message?: string }> {
-  const recipientEmail = 'rockyalfarizi23@gmail.com';
+  const recipientEmail = 'rockyalfarizi2@gmail.com'; // Updated recipient email
   // In a real app, the senderEmail would be a configured email address,
   // not necessarily the one hardcoded or coming from the user.
   // For this simulation, we'll just log it.
-  const senderEmail = 'rockyalfarizi2@gmail.com'; // This is the "from" address
+  const senderEmail = 'no-reply@smpmakarya.sch.id'; // Example of a generic sender email
 
   console.log(`Simulating sending email to: ${recipientEmail}`);
   console.log(`From: ${senderEmail}`);
+  console.log('Subject: CALON SISWA/SISWI TELAH MENDAFTAR');
   console.log('Registration Data:', {
     ...formData,
     studentPhoneNumber: formData.studentPhoneNumber || 'Tidak diisi', // Handle optional field for logging
@@ -38,9 +39,10 @@ export async function sendRegistrationEmail(
   // const mailOptions = {
   //   from: senderEmail, // sender address
   //   to: recipientEmail, // list of receivers
-  //   subject: \`Pendaftaran Siswa Baru: \${formData.fullName}\`, // Subject line
+  //   subject: "CALON SISWA/SISWI TELAH MENDAFTAR", // Updated Subject line
   //   html: \`
   //     <h1>Data Pendaftaran Siswa Baru</h1>
+  //     <p>Seorang calon siswa/siswi baru telah mendaftar dengan data sebagai berikut:</p>
   //     <p><strong>Nama Lengkap:</strong> \${formData.fullName}</p>
   //     <p><strong>Jenis Kelamin:</strong> \${formData.gender}</p>
   //     <p><strong>Tempat, Tanggal Lahir:</strong> \${formData.birthPlace}, \${new Date(formData.birthDate).toLocaleDateString('id-ID')}</p>
@@ -74,3 +76,4 @@ export async function sendRegistrationEmail(
   // For now, we'll just return a success message as if the email was sent.
   return { success: true, message: 'Email sent successfully (simulated)' };
 }
+
