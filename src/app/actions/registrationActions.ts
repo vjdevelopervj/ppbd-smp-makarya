@@ -7,10 +7,9 @@ export async function sendRegistrationEmail(
   formData: RegistrationFormData
 ): Promise<{ success: boolean; message?: string }> {
   const recipientEmail = 'rockyalfarizi2@gmail.com'; // Updated recipient email
-  // In a real app, the senderEmail would be a configured email address,
-  // not necessarily the one hardcoded or coming from the user.
-  // For this simulation, we'll just log it.
-  const senderEmail = 'no-reply@smpmakarya.sch.id'; // Example of a generic sender email
+  // In a real app, the senderEmail would be a configured email address.
+  // For this simulation, we'll use the specified sender.
+  const senderEmail = 'tenis882@gmail.com'; // Updated sender email
 
   console.log(`Simulating sending email to: ${recipientEmail}`);
   console.log(`From: ${senderEmail}`);
@@ -27,19 +26,19 @@ export async function sendRegistrationEmail(
   // import nodemailer from 'nodemailer';
   //
   // const transporter = nodemailer.createTransport({
-  //   host: 'smtp.example.com',
-  //   port: 587,
+  //   host: 'smtp.example.com', // Your SMTP host
+  //   port: 587, // Your SMTP port
   //   secure: false, // true for 465, false for other ports
   //   auth: {
-  //     user: process.env.EMAIL_USER,
-  //     pass: process.env.EMAIL_PASS,
+  //     user: process.env.EMAIL_USER, // Your email user from .env
+  //     pass: process.env.EMAIL_PASS, // Your email password from .env
   //   },
   // });
   //
   // const mailOptions = {
-  //   from: senderEmail, // sender address
-  //   to: recipientEmail, // list of receivers
-  //   subject: "CALON SISWA/SISWI TELAH MENDAFTAR", // Updated Subject line
+  //   from: senderEmail, // sender address (tenis882@gmail.com)
+  //   to: recipientEmail, // list of receivers (rockyalfarizi2@gmail.com)
+  //   subject: "CALON SISWA/SISWI TELAH MENDAFTAR", // Subject line
   //   html: \`
   //     <h1>Data Pendaftaran Siswa Baru</h1>
   //     <p>Seorang calon siswa/siswi baru telah mendaftar dengan data sebagai berikut:</p>
@@ -76,4 +75,3 @@ export async function sendRegistrationEmail(
   // For now, we'll just return a success message as if the email was sent.
   return { success: true, message: 'Email sent successfully (simulated)' };
 }
-
