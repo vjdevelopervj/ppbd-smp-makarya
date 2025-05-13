@@ -41,7 +41,7 @@ const registrationFormSchema = z.object({
   birthDate: z.date({ required_error: 'Tanggal lahir harus diisi.' }),
   religion: z.string().min(3, { message: 'Agama minimal 3 karakter.' }),
   address: z.string().min(10, { message: 'Alamat lengkap minimal 10 karakter.' }),
-  studentPhoneNumber: z.string().min(10, { message: 'Nomor telepon minimal 10 digit.' }).regex(/^\d+$/, { message: "Nomor telepon hanya boleh berisi angka." }),
+  studentPhoneNumber: z.string().min(10, { message: 'Nomor telepon minimal 10 digit.' }).regex(/^\d+$/, { message: "Nomor telepon hanya boleh berisi angka." }).optional().or(z.literal('')),
   previousSchool: z.string().min(3, { message: 'Asal sekolah minimal 3 karakter.' }),
   lastCertificate: z.enum(['SD/MI', 'Paket A'], { required_error: 'Ijazah terakhir harus dipilih.'}),
   fatherName: z.string().min(3, { message: 'Nama ayah minimal 3 karakter.' }),
@@ -246,7 +246,7 @@ export default function RegistrationForm() {
             name="studentPhoneNumber"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>No. HP Calon Siswa (Aktif WA)</FormLabel>
+                <FormLabel>No. HP Calon Siswa (Aktif WA) <span className="text-muted-foreground text-xs">(Opsional)</span></FormLabel>
                 <FormControl>
                   <Input type="tel" placeholder="08xxxxxxxxxx" {...field} />
                 </FormControl>
@@ -409,3 +409,4 @@ export default function RegistrationForm() {
     </Form>
   );
 }
+

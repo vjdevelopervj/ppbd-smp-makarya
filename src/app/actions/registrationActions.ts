@@ -14,7 +14,10 @@ export async function sendRegistrationEmail(
 
   console.log(`Simulating sending email to: ${recipientEmail}`);
   console.log(`From: ${senderEmail}`);
-  console.log('Registration Data:', formData);
+  console.log('Registration Data:', {
+    ...formData,
+    studentPhoneNumber: formData.studentPhoneNumber || 'Tidak diisi', // Handle optional field for logging
+  });
 
   // Simulate email sending process
   // In a real application, you would use an email sending service (e.g., Nodemailer with SMTP, SendGrid, AWS SES)
@@ -35,25 +38,25 @@ export async function sendRegistrationEmail(
   // const mailOptions = {
   //   from: senderEmail, // sender address
   //   to: recipientEmail, // list of receivers
-  //   subject: `Pendaftaran Siswa Baru: ${formData.fullName}`, // Subject line
+  //   subject: \`Pendaftaran Siswa Baru: \${formData.fullName}\`, // Subject line
   //   html: \`
   //     <h1>Data Pendaftaran Siswa Baru</h1>
-  //     <p><strong>Nama Lengkap:</strong> ${formData.fullName}</p>
-  //     <p><strong>Jenis Kelamin:</strong> ${formData.gender}</p>
-  //     <p><strong>Tempat, Tanggal Lahir:</strong> ${formData.birthPlace}, ${new Date(formData.birthDate).toLocaleDateString('id-ID')}</p>
-  //     <p><strong>Agama:</strong> ${formData.religion}</p>
-  //     <p><strong>Alamat:</strong> ${formData.address}</p>
-  //     <p><strong>No. HP Siswa:</strong> ${formData.studentPhoneNumber}</p>
-  //     <p><strong>Asal Sekolah:</strong> ${formData.previousSchool}</p>
-  //     <p><strong>Ijazah Terakhir:</strong> ${formData.lastCertificate}</p>
+  //     <p><strong>Nama Lengkap:</strong> \${formData.fullName}</p>
+  //     <p><strong>Jenis Kelamin:</strong> \${formData.gender}</p>
+  //     <p><strong>Tempat, Tanggal Lahir:</strong> \${formData.birthPlace}, \${new Date(formData.birthDate).toLocaleDateString('id-ID')}</p>
+  //     <p><strong>Agama:</strong> \${formData.religion}</p>
+  //     <p><strong>Alamat:</strong> \${formData.address}</p>
+  //     <p><strong>No. HP Siswa:</strong> \${formData.studentPhoneNumber || 'Tidak diisi'}</p>
+  //     <p><strong>Asal Sekolah:</strong> \${formData.previousSchool}</p>
+  //     <p><strong>Ijazah Terakhir:</strong> \${formData.lastCertificate}</p>
   //     <h2>Data Orang Tua</h2>
-  //     <p><strong>Nama Ayah:</strong> ${formData.fatherName}</p>
-  //     <p><strong>Pekerjaan Ayah:</strong> ${formData.fatherOccupation}</p>
-  //     <p><strong>No. HP Ayah:</strong> ${formData.fatherPhoneNumber}</p>
-  //     <p><strong>Nama Ibu:</strong> ${formData.motherName}</p>
-  //     <p><strong>Pekerjaan Ibu:</strong> ${formData.motherOccupation}</p>
-  //     <p><strong>No. HP Ibu:</strong> ${formData.motherPhoneNumber}</p>
-  //     <p><strong>Email Orang Tua/Wali:</strong> ${formData.parentEmail}</p>
+  //     <p><strong>Nama Ayah:</strong> \${formData.fatherName}</p>
+  //     <p><strong>Pekerjaan Ayah:</strong> \${formData.fatherOccupation}</p>
+  //     <p><strong>No. HP Ayah:</strong> \${formData.fatherPhoneNumber}</p>
+  //     <p><strong>Nama Ibu:</strong> \${formData.motherName}</p>
+  //     <p><strong>Pekerjaan Ibu:</strong> \${formData.motherOccupation}</p>
+  //     <p><strong>No. HP Ibu:</strong> \${formData.motherPhoneNumber}</p>
+  //     <p><strong>Email Orang Tua/Wali:</strong> \${formData.parentEmail}</p>
   //   \`,
   // };
   //
