@@ -149,12 +149,12 @@ export default function RegistrationForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
-                name="fullName"
+                name="nisn"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nama Lengkap Calon Siswa</FormLabel>
+                    <FormLabel>NISN (Nomor Induk Siswa Nasional)</FormLabel>
                     <FormControl>
-                      <Input placeholder="Masukkan nama lengkap" {...field} />
+                      <Input placeholder="Masukkan 10 digit NISN" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -162,12 +162,12 @@ export default function RegistrationForm() {
               />
               <FormField
                 control={form.control}
-                name="nisn"
+                name="fullName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>NISN (Nomor Induk Siswa Nasional)</FormLabel>
+                    <FormLabel>Nama Lengkap Calon Siswa</FormLabel>
                     <FormControl>
-                      <Input placeholder="Masukkan 10 digit NISN" {...field} />
+                      <Input placeholder="Masukkan nama lengkap" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
