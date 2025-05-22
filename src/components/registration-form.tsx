@@ -2,7 +2,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -61,6 +61,7 @@ export default function RegistrationForm() {
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1); // 1 for student, 2 for parent
 
   const form = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationFormSchema),
@@ -81,6 +82,30 @@ export default function RegistrationForm() {
       parentEmail: '',
     },
   });
+
+  // Fields for student data step
+  const studentFields: (keyof RegistrationFormData)[] = [
+    'fullName', 'nisn', 'gender', 'birthPlace', 'birthDate', 
+    'religion', 'address', 'studentPhoneNumber', 'previousSchool', 'lastCertificate'
+  ];
+
+  const handleNextStep = async () => {
+    // Trigger validation for student fields only
+    const isValid = await form.trigger(studentFields);
+    if (isValid) {
+      setCurrentStep(2);
+    } else {
+      toast({
+        title: 'Data Belum Lengkap',
+        description: 'Mohon periksa kembali data calon siswa yang Anda isi.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handlePreviousStep = () => {
+    setCurrentStep(1);
+  };
 
   async function onSubmit(data: RegistrationFormData) {
     setIsSubmitting(true);
@@ -117,313 +142,327 @@ export default function RegistrationForm() {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        {/* Data Siswa */}
-        <h3 className="text-xl font-semibold text-primary pt-4 border-b">Data Calon Siswa</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="fullName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nama Lengkap Calon Siswa</FormLabel>
-                <FormControl>
-                  <Input placeholder="Masukkan nama lengkap" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="nisn"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>NISN (Nomor Induk Siswa Nasional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="Masukkan 10 digit NISN" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="gender"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Jenis Kelamin</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih jenis kelamin" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Laki-laki">Laki-laki</SelectItem>
-                    <SelectItem value="Perempuan">Perempuan</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-           <FormField
-            control={form.control}
-            name="religion"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Agama</FormLabel>
-                <FormControl>
-                  <Input placeholder="Masukkan agama" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="birthPlace"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Tempat Lahir</FormLabel>
-                <FormControl>
-                  <Input placeholder="Masukkan tempat lahir" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="birthDate"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Tanggal Lahir</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
+        {currentStep === 1 && (
+          <>
+            {/* Data Siswa */}
+            <h3 className="text-xl font-semibold text-primary pt-4 border-b">Data Calon Siswa (Langkah 1 dari 2)</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="fullName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nama Lengkap Calon Siswa</FormLabel>
                     <FormControl>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full pl-3 text-left font-normal',
-                          !field.value && 'text-muted-foreground'
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, 'PPP', { locale: id })
-                        ) : (
-                          <span>Pilih tanggal lahir</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
+                      <Input placeholder="Masukkan nama lengkap" {...field} />
                     </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) =>
-                        date > new Date() || date < new Date('1900-01-01')
-                      }
-                      initialFocus
-                      locale={id}
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="nisn"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>NISN (Nomor Induk Siswa Nasional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Masukkan 10 digit NISN" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Jenis Kelamin</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih jenis kelamin" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="Laki-laki">Laki-laki</SelectItem>
+                        <SelectItem value="Perempuan">Perempuan</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="religion"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Agama</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Masukkan agama" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        <FormField
-          control={form.control}
-          name="address"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Alamat Lengkap</FormLabel>
-              <FormControl>
-                <Textarea placeholder="Masukkan alamat lengkap" {...field} />
-              </FormControl>
-              <FormDescription>
-                Sertakan RT/RW, Kelurahan, Kecamatan, Kota/Kabupaten, dan Kode Pos.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="birthPlace"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tempat Lahir</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Masukkan tempat lahir" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="birthDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Tanggal Lahir</FormLabel>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={'outline'}
+                            className={cn(
+                              'w-full pl-3 text-left font-normal',
+                              !field.value && 'text-muted-foreground'
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, 'PPP', { locale: id })
+                            ) : (
+                              <span>Pilih tanggal lahir</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date > new Date() || date < new Date('1900-01-01')
+                          }
+                          initialFocus
+                          locale={id}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-        <FormField
-            control={form.control}
-            name="studentPhoneNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>No. HP Calon Siswa (Aktif WA) <span className="text-muted-foreground text-xs">(Opsional)</span></FormLabel>
-                <FormControl>
-                  <Input type="tel" placeholder="08xxxxxxxxxx" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-       
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
-            control={form.control}
-            name="previousSchool"
-            render={({ field }) => (
+              control={form.control}
+              name="address"
+              render={({ field }) => (
                 <FormItem>
-                <FormLabel>Asal Sekolah (SD/MI)</FormLabel>
-                <FormControl>
-                    <Input placeholder="Nama sekolah sebelumnya" {...field} />
-                </FormControl>
-                <FormMessage />
-                </FormItem>
-            )}
-            />
-            <FormField
-            control={form.control}
-            name="lastCertificate"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Ijazah Terakhir</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormLabel>Alamat Lengkap</FormLabel>
                   <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih ijazah terakhir" />
-                    </SelectTrigger>
+                    <Textarea placeholder="Masukkan alamat lengkap" {...field} />
                   </FormControl>
-                  <SelectContent>
-                    <SelectItem value="SD/MI">Ijazah SD/MI</SelectItem>
-                    <SelectItem value="Paket A">Ijazah Paket A</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                  <FormDescription>
+                    Sertakan RT/RW, Kelurahan, Kecamatan, Kota/Kabupaten, dan Kode Pos.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        {/* Data Orang Tua/Wali */}
-        <h3 className="text-xl font-semibold text-primary pt-4 border-t mt-8">Data Orang Tua/Wali</h3>
+            <FormField
+                control={form.control}
+                name="studentPhoneNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>No. HP Calon Siswa (Aktif WA) <span className="text-muted-foreground text-xs">(Opsional)</span></FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="08xxxxxxxxxx" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+           
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                control={form.control}
+                name="previousSchool"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Asal Sekolah (SD/MI)</FormLabel>
+                    <FormControl>
+                        <Input placeholder="Nama sekolah sebelumnya" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+                <FormField
+                control={form.control}
+                name="lastCertificate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ijazah Terakhir</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih ijazah terakhir" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="SD/MI">Ijazah SD/MI</SelectItem>
+                        <SelectItem value="Paket A">Ijazah Paket A</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <Button type="button" onClick={handleNextStep} className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground">
+              Selanjutnya (Data Orang Tua) <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </>
+        )}
 
-        <FormField
-          control={form.control}
-          name="fatherName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nama Ayah</FormLabel>
-              <FormControl>
-                <Input placeholder="Nama lengkap ayah" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="fatherOccupation"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Pekerjaan Ayah</FormLabel>
-                <FormControl>
-                  <Input placeholder="Pekerjaan ayah" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="fatherPhoneNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>No. HP Ayah (Aktif WA)</FormLabel>
-                <FormControl>
-                  <Input type="tel" placeholder="08xxxxxxxxxx" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        {currentStep === 2 && (
+          <>
+            {/* Data Orang Tua/Wali */}
+            <h3 className="text-xl font-semibold text-primary pt-4 border-t mt-8">Data Orang Tua/Wali (Langkah 2 dari 2)</h3>
 
-        <FormField
-          control={form.control}
-          name="motherName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nama Ibu</FormLabel>
-              <FormControl>
-                <Input placeholder="Nama lengkap ibu" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="motherOccupation"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Pekerjaan Ibu</FormLabel>
-                <FormControl>
-                  <Input placeholder="Pekerjaan ibu" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="motherPhoneNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>No. HP Ibu (Aktif WA)</FormLabel>
-                <FormControl>
-                  <Input type="tel" placeholder="08xxxxxxxxxx" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        
-        <FormField
-          control={form.control}
-          name="parentEmail"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email Orang Tua/Wali</FormLabel>
-              <FormControl>
-                <Input type="email" placeholder="email.orangtua@contoh.com" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="fatherName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nama Ayah</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nama lengkap ayah" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="fatherOccupation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pekerjaan Ayah</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Pekerjaan ayah" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="fatherPhoneNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>No. HP Ayah (Aktif WA)</FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="08xxxxxxxxxx" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
+            <FormField
+              control={form.control}
+              name="motherName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nama Ibu</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nama lengkap ibu" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="motherOccupation"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Pekerjaan Ibu</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Pekerjaan ibu" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="motherPhoneNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>No. HP Ibu (Aktif WA)</FormLabel>
+                    <FormControl>
+                      <Input type="tel" placeholder="08xxxxxxxxxx" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <FormField
+              control={form.control}
+              name="parentEmail"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Orang Tua/Wali</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="email.orangtua@contoh.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Memproses Pendaftaran...
-            </>
-          ) : (
-            'Daftar & Lanjut ke Tes'
-          )}
-        </Button>
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
+              <Button type="button" variant="outline" onClick={handlePreviousStep} className="w-full sm:w-auto">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Kembali (Data Siswa)
+              </Button>
+              <Button type="submit" className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Memproses Pendaftaran...
+                  </>
+                ) : (
+                  'Daftar & Lanjut ke Tes'
+                )}
+              </Button>
+            </div>
+          </>
+        )}
       </form>
     </Form>
   );
