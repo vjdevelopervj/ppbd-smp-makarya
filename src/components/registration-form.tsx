@@ -36,6 +36,7 @@ import { sendRegistrationEmail } from '@/app/actions/registrationActions'; // Se
 
 const registrationFormSchema = z.object({
   fullName: z.string().min(3, { message: 'Nama lengkap minimal 3 karakter.' }),
+  nisn: z.string().length(10, { message: 'NISN harus 10 digit.' }).regex(/^\d+$/, { message: "NISN hanya boleh berisi angka." }),
   gender: z.enum(['Laki-laki', 'Perempuan'], { required_error: 'Jenis kelamin harus dipilih.' }),
   birthPlace: z.string().min(3, { message: 'Tempat lahir minimal 3 karakter.' }),
   birthDate: z.date({ required_error: 'Tanggal lahir harus diisi.' }),
@@ -44,6 +45,7 @@ const registrationFormSchema = z.object({
   studentPhoneNumber: z.string().min(10, { message: 'Nomor telepon minimal 10 digit.' }).regex(/^\d+$/, { message: "Nomor telepon hanya boleh berisi angka." }).optional().or(z.literal('')),
   previousSchool: z.string().min(3, { message: 'Asal sekolah minimal 3 karakter.' }),
   lastCertificate: z.enum(['SD/MI', 'Paket A'], { required_error: 'Ijazah terakhir harus dipilih.'}),
+  
   fatherName: z.string().min(3, { message: 'Nama ayah minimal 3 karakter.' }),
   fatherOccupation: z.string().min(3, { message: 'Pekerjaan ayah minimal 3 karakter.' }),
   fatherPhoneNumber: z.string().min(10, { message: 'Nomor telepon minimal 10 digit.' }).regex(/^\d+$/, { message: "Nomor telepon hanya boleh berisi angka." }),
@@ -64,6 +66,7 @@ export default function RegistrationForm() {
     resolver: zodResolver(registrationFormSchema),
     defaultValues: {
       fullName: '',
+      nisn: '',
       birthPlace: '',
       religion: '',
       address: '',
@@ -91,7 +94,6 @@ export default function RegistrationForm() {
           className: 'bg-accent text-accent-foreground',
         });
         form.reset();
-        // Redirect to quiz page instead of confirmation page
         router.push(`/quiz?name=${encodeURIComponent(data.fullName)}`);
       } else {
         toast({
@@ -116,6 +118,7 @@ export default function RegistrationForm() {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         {/* Data Siswa */}
+        <h3 className="text-xl font-semibold text-primary pt-4 border-b">Data Calon Siswa</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
@@ -130,6 +133,22 @@ export default function RegistrationForm() {
               </FormItem>
             )}
           />
+          <FormField
+            control={form.control}
+            name="nisn"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>NISN (Nomor Induk Siswa Nasional)</FormLabel>
+                <FormControl>
+                  <Input placeholder="Masukkan 10 digit NISN" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             control={form.control}
             name="gender"
@@ -147,6 +166,19 @@ export default function RegistrationForm() {
                     <SelectItem value="Perempuan">Perempuan</SelectItem>
                   </SelectContent>
                 </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+           <FormField
+            control={form.control}
+            name="religion"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Agama</FormLabel>
+                <FormControl>
+                  <Input placeholder="Masukkan agama" {...field} />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
@@ -210,20 +242,6 @@ export default function RegistrationForm() {
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="religion"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Agama</FormLabel>
-              <FormControl>
-                <Input placeholder="Masukkan agama" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <FormField
           control={form.control}
@@ -410,4 +428,3 @@ export default function RegistrationForm() {
     </Form>
   );
 }
-
