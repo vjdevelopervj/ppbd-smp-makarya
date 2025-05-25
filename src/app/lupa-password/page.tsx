@@ -52,25 +52,23 @@ export default function ForgotPasswordPage() {
 
     if (existingUser) {
       toast({
-        title: 'Permintaan Terkirim (Simulasi)',
-        description: 'Jika username terdaftar, instruksi untuk mereset password Anda telah (disimulasikan) dikirim. Silakan periksa email Anda.',
+        title: 'Username Ditemukan',
+        description: 'Anda akan diarahkan untuk membuat password baru.',
         className: 'bg-accent text-accent-foreground',
-        duration: 7000,
+        duration: 3000,
       });
+      router.push(`/atur-password-baru?username=${encodeURIComponent(data.username)}`);
     } else {
       toast({
-        title: 'Username Tidak Ditemukan (Simulasi)',
+        title: 'Username Tidak Ditemukan',
         description: 'Username yang Anda masukkan tidak terdaftar. Pastikan username sudah benar atau daftar akun baru.',
         variant: 'destructive',
         duration: 7000,
       });
     }
-    // We don't actually reset anything here, just simulate the notification
-    // In a real app, you'd trigger an email or other reset mechanism.
-    form.reset(); // Reset form regardless of outcome for security/privacy.
     setIsSubmitting(false);
-    // Optionally redirect after a delay or keep user on page
-    // router.push('/'); 
+    // Form is not reset here, so user can see what they typed if there was an error.
+    // It will be reset if they navigate away or successfully get redirected.
   }
 
   return (
@@ -82,7 +80,7 @@ export default function ForgotPasswordPage() {
           </div>
           <CardTitle className="text-3xl font-bold text-primary">Lupa Password</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Masukkan username Anda untuk menerima instruksi reset password (simulasi).
+            Masukkan username Anda untuk melanjutkan proses reset password.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
@@ -108,7 +106,7 @@ export default function ForgotPasswordPage() {
                   'Memproses...'
                 ) : (
                   <>
-                    <Send className="mr-2 h-5 w-5" /> Kirim Instruksi
+                    <Send className="mr-2 h-5 w-5" /> Lanjutkan
                   </>
                 )}
               </Button>
