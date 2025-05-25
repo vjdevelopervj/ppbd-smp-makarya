@@ -25,10 +25,26 @@ interface RegisteredUser {
   role: string;
 }
 
+// This interface now includes all fields from RegistrationFormData
 interface StudentApplication {
-  id: string; 
+  id: string; // NISN
   fullName: string;
   nisn: string;
+  gender: string;
+  birthPlace: string;
+  birthDate: string; // ISO string from localStorage
+  religion: string;
+  address: string;
+  studentPhoneNumber?: string;
+  previousSchool: string;
+  lastCertificate: string;
+  fatherName: string;
+  fatherOccupation: string;
+  fatherPhoneNumber: string;
+  motherName: string;
+  motherOccupation: string;
+  motherPhoneNumber: string;
+  parentEmail: string;
   formSubmittedDate: string; 
   quizCompleted: boolean;
   quizScore?: number;
@@ -50,7 +66,6 @@ export default function AdminDashboardPage() {
   const [detailedRegisteredUsers, setDetailedRegisteredUsers] = useState<RegisteredUser[]>([]);
   const [detailedStudentApplications, setDetailedStudentApplications] = useState<StudentApplication[]>([]);
 
-  // State for Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState<{
     title: string;
@@ -124,6 +139,92 @@ export default function AdminDashboardPage() {
     );
   }
 
+  const renderFullApplicationDetailsTable = (data: StudentApplication[]) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>NISN</TableHead>
+          <TableHead>Nama</TableHead>
+          <TableHead>JK</TableHead>
+          <TableHead>Tmp/Tgl Lahir</TableHead>
+          <TableHead>Agama</TableHead>
+          <TableHead className="min-w-[200px]">Alamat</TableHead>
+          <TableHead>No.HP Siswa</TableHead>
+          <TableHead>Asal Sekolah</TableHead>
+          <TableHead>Ijazah</TableHead>
+          <TableHead>Nama Ayah</TableHead>
+          <TableHead>Pek. Ayah</TableHead>
+          <TableHead>No.HP Ayah</TableHead>
+          <TableHead>Nama Ibu</TableHead>
+          <TableHead>Pek. Ibu</TableHead>
+          <TableHead>No.HP Ibu</TableHead>
+          <TableHead>Email Ortu</TableHead>
+          <TableHead>Tgl Form</TableHead>
+          <TableHead>Tes Selesai</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {data.map((app) => (
+          <TableRow key={app.id}>
+            <TableCell className="font-medium">{app.nisn}</TableCell>
+            <TableCell>{app.fullName}</TableCell>
+            <TableCell>{app.gender}</TableCell>
+            <TableCell>{`${app.birthPlace}, ${new Date(app.birthDate).toLocaleDateString('id-ID')}`}</TableCell>
+            <TableCell>{app.religion}</TableCell>
+            <TableCell className="max-w-xs whitespace-pre-wrap break-words">{app.address}</TableCell>
+            <TableCell>{app.studentPhoneNumber || '-'}</TableCell>
+            <TableCell>{app.previousSchool}</TableCell>
+            <TableCell>{app.lastCertificate}</TableCell>
+            <TableCell>{app.fatherName}</TableCell>
+            <TableCell>{app.fatherOccupation}</TableCell>
+            <TableCell>{app.fatherPhoneNumber}</TableCell>
+            <TableCell>{app.motherName}</TableCell>
+            <TableCell>{app.motherOccupation}</TableCell>
+            <TableCell>{app.motherPhoneNumber}</TableCell>
+            <TableCell>{app.parentEmail}</TableCell>
+            <TableCell>{new Date(app.formSubmittedDate).toLocaleDateString('id-ID')}</TableCell>
+            <TableCell>{app.quizCompleted ? 'Ya' : 'Belum'}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
+  const renderQuizStatusTable = (data: StudentApplication[]) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>NISN</TableHead>
+          <TableHead>Nama Lengkap</TableHead>
+          <TableHead>Tgl. Form</TableHead>
+          <TableHead>Tes Selesai</TableHead>
+          <TableHead>Skor Tes</TableHead>
+          <TableHead>Status Lulus</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {(data as StudentApplication[]).map((app) => (
+          <TableRow key={app.id}>
+            <TableCell className="font-medium">{app.nisn}</TableCell>
+            <TableCell>{app.fullName}</TableCell>
+            <TableCell>{new Date(app.formSubmittedDate).toLocaleDateString('id-ID')}</TableCell>
+            <TableCell>{app.quizCompleted ? 'Ya' : 'Belum'}</TableCell>
+            <TableCell>{app.quizScore !== undefined ? app.quizScore : '-'}</TableCell>
+            <TableCell>
+              {app.quizCompleted ? (
+                app.passedQuiz ? 
+                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Lulus</span> : 
+                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Tidak Lulus</span>
+              ) : (
+                '-'
+              )}
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
   return (
     <div className="space-y-8 py-8">
       <Card className="shadow-xl animate-fade-in-up">
@@ -168,7 +269,7 @@ export default function AdminDashboardPage() {
             handleCardClick(
               "Detail Pendaftar (Tes Selesai)",
               applicantsWithTestDone,
-              'applications'
+              'applications' // This type will now be handled conditionally based on title
             );
           }}
         >
@@ -237,9 +338,8 @@ export default function AdminDashboardPage() {
         </Card>
       </div>
 
-      {/* Modal for displaying detailed data */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[70vw] xl:max-w-[60vw] max-h-[85vh] flex flex-col">
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[70vw] xl:max-w-[90vw] 2xl:max-w-[80vw] max-h-[85vh] flex flex-col">
           {modalContent && (
             <>
               <DialogHeader>
@@ -248,63 +348,41 @@ export default function AdminDashboardPage() {
                   Menampilkan {modalContent.data.length} entri untuk {modalContent.title.toLowerCase()}.
                 </DialogDescription>
               </DialogHeader>
-              <div className="mt-4 overflow-y-auto flex-grow">
+              <div className="mt-4 overflow-auto flex-grow"> {/* Changed to overflow-auto for horizontal scroll */}
                 {modalContent.data.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      {modalContent.type === 'users' ? (
-                        <TableRow>
-                          <TableHead>Username</TableHead>
-                          <TableHead>Nama Lengkap</TableHead>
-                          <TableHead>Tgl. Registrasi</TableHead>
-                          <TableHead>Peran</TableHead>
-                        </TableRow>
-                      ) : (
-                        <TableRow>
-                          <TableHead>NISN</TableHead>
-                          <TableHead>Nama Lengkap</TableHead>
-                          <TableHead>Tgl. Form</TableHead>
-                          <TableHead>Tes Selesai</TableHead>
-                          <TableHead>Skor Tes</TableHead>
-                          <TableHead>Status Lulus</TableHead>
-                        </TableRow>
-                      )}
-                    </TableHeader>
-                    <TableBody>
-                      {modalContent.type === 'users' &&
-                        (modalContent.data as RegisteredUser[]).map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell className="font-medium">{user.username}</TableCell>
-                            <TableCell>{user.fullName}</TableCell>
-                            <TableCell>{user.registrationDate}</TableCell>
-                            <TableCell>
-                                <span className={'px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700'}>
-                                    {user.role}
-                                </span>
-                            </TableCell>
+                  <>
+                    {modalContent.type === 'users' && (
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Username</TableHead>
+                            <TableHead>Nama Lengkap</TableHead>
+                            <TableHead>Tgl. Registrasi</TableHead>
+                            <TableHead>Peran</TableHead>
                           </TableRow>
-                        ))}
-                      {modalContent.type === 'applications' &&
-                        (modalContent.data as StudentApplication[]).map((app) => (
-                          <TableRow key={app.id}>
-                            <TableCell className="font-medium">{app.nisn}</TableCell>
-                            <TableCell>{app.fullName}</TableCell>
-                            <TableCell>{new Date(app.formSubmittedDate).toLocaleDateString('id-ID')}</TableCell>
-                            <TableCell>{app.quizCompleted ? 'Ya' : 'Belum'}</TableCell>
-                            <TableCell>{app.quizScore !== undefined ? app.quizScore : '-'}</TableCell>
-                            <TableCell>
-                              {app.quizCompleted ? (
-                                app.passedQuiz ? 
-                                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Lulus</span> : 
-                                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Tidak Lulus</span>
-                              ) : (
-                                '-'
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                    </TableBody>
-                  </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {(modalContent.data as RegisteredUser[]).map((user) => (
+                            <TableRow key={user.id}>
+                              <TableCell className="font-medium">{user.username}</TableCell>
+                              <TableCell>{user.fullName}</TableCell>
+                              <TableCell>{user.registrationDate}</TableCell>
+                              <TableCell>
+                                  <span className={'px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700'}>
+                                      {user.role}
+                                  </span>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    )}
+                    {modalContent.type === 'applications' && (
+                      modalContent.title === "Detail Pendaftar (Tes Selesai)" ?
+                      renderFullApplicationDetailsTable(modalContent.data as StudentApplication[]) :
+                      renderQuizStatusTable(modalContent.data as StudentApplication[])
+                    )}
+                  </>
                 ) : (
                   <div className="text-center py-10">
                     <FileText className="mx-auto h-12 w-12 text-muted-foreground" />

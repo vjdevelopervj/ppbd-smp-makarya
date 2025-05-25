@@ -34,20 +34,6 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { sendRegistrationEmail } from '@/app/actions/registrationActions'; // Server Action
 
-// Interface untuk data aplikasi siswa yang akan disimpan di localStorage
-interface StudentApplication {
-  id: string; // Gunakan NISN sebagai ID unik
-  fullName: string;
-  nisn: string;
-  formSubmittedDate: string; // ISO string date
-  quizCompleted: boolean;
-  quizScore?: number;
-  passedQuiz?: boolean;
-}
-
-const STUDENT_APPLICATIONS_KEY = 'smpMakaryaStudentApplications';
-
-
 const registrationFormSchema = z.object({
   fullName: z.string().min(3, { message: 'Nama lengkap minimal 3 karakter.' }),
   nisn: z.string().length(10, { message: 'NISN harus 10 digit.' }).regex(/^\d+$/, { message: "NISN hanya boleh berisi angka." }),
@@ -70,6 +56,19 @@ const registrationFormSchema = z.object({
 });
 
 export type RegistrationFormData = z.infer<typeof registrationFormSchema>;
+
+// Interface untuk data aplikasi siswa yang akan disimpan di localStorage
+// Ini sekarang mencakup semua RegistrationFormData
+interface StudentApplicationDataToStore extends RegistrationFormData {
+  id: string; // Gunakan NISN sebagai ID unik
+  formSubmittedDate: string; // ISO string date
+  quizCompleted: boolean;
+  quizScore?: number;
+  passedQuiz?: boolean;
+}
+
+const STUDENT_APPLICATIONS_KEY = 'smpMakaryaStudentApplications';
+
 
 export default function RegistrationForm() {
   const { toast } = useToast();
@@ -129,25 +128,24 @@ export default function RegistrationForm() {
         // Save student application data to localStorage
         if (typeof window !== 'undefined') {
           const applicationsRaw = localStorage.getItem(STUDENT_APPLICATIONS_KEY);
-          let applications: StudentApplication[] = applicationsRaw ? JSON.parse(applicationsRaw) : [];
+          let applications: StudentApplicationDataToStore[] = applicationsRaw ? JSON.parse(applicationsRaw) : [];
           
-          // Check if application for this NISN already exists, update if so, else add new
           const existingApplicationIndex = applications.findIndex(app => app.nisn === data.nisn);
           
-          const newApplicationData: StudentApplication = {
+          // Create the new application data with all fields from the form
+          const newApplicationData: StudentApplicationDataToStore = {
+            ...data, // Spread all fields from RegistrationFormData
+            birthDate: data.birthDate.toISOString(), // Convert Date to ISO string for storage
             id: data.nisn,
-            fullName: data.fullName,
-            nisn: data.nisn,
             formSubmittedDate: new Date().toISOString(),
-            quizCompleted: false, // Will be updated after quiz
+            quizCompleted: false, 
           };
 
           if (existingApplicationIndex > -1) {
-            // Preserve quiz data if it exists and only update form-related info
             applications[existingApplicationIndex] = {
-              ...applications[existingApplicationIndex], // Keep existing quiz data
-              ...newApplicationData, // Update with new form data
-              quizCompleted: applications[existingApplicationIndex].quizCompleted, // Explicitly keep existing quiz status
+              ...applications[existingApplicationIndex], 
+              ...newApplicationData, 
+              quizCompleted: applications[existingApplicationIndex].quizCompleted,
               quizScore: applications[existingApplicationIndex].quizScore,
               passedQuiz: applications[existingApplicationIndex].passedQuiz,
             };
@@ -164,7 +162,6 @@ export default function RegistrationForm() {
           className: 'bg-accent text-accent-foreground',
         });
         form.reset();
-        // Pass NISN to the quiz page for identification
         router.push(`/quiz?name=${encodeURIComponent(data.fullName)}&nisn=${encodeURIComponent(data.nisn)}`);
       } else {
         toast({
@@ -513,6 +510,3 @@ export default function RegistrationForm() {
     </Form>
   );
 }
-
-
-    
