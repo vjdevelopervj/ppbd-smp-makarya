@@ -1,10 +1,18 @@
 
 'use server';
 
-import type { RegistrationFormData } from '@/components/registration-form';
+// import type { RegistrationFormData } from '@/components/registration-form'; // This type is local to registration-form
+import type { StudentApplicationDataToStore } from '@/components/registration-form'; // Use the more comprehensive type
+
+// The data received by the action now includes 'username'
+export type RegistrationEmailData = Omit<StudentApplicationDataToStore, 'id' | 'formSubmittedDate' | 'quizCompleted' | 'quizScore' | 'passedQuiz' | 'birthDate'> & {
+  birthDate: string; // birthDate is a string here from the form data being passed around
+  username: string;
+};
+
 
 export async function sendRegistrationEmail(
-  formData: RegistrationFormData
+  formData: RegistrationEmailData
 ): Promise<{ success: boolean; message?: string }> {
   const recipientEmail = 'rockyalfarizi2@gmail.com';
   const senderEmail = 'tenis882@gmail.com';
@@ -14,8 +22,8 @@ export async function sendRegistrationEmail(
   console.log('Subject: CALON SISWA/SISWI TELAH MENDAFTAR');
   console.log('Registration Data:', {
     ...formData,
+    username: formData.username, // Ensure username is logged
     studentPhoneNumber: formData.studentPhoneNumber || 'Tidak diisi',
-    // NISN is now part of formData
   });
 
   // Simulate email sending process
@@ -33,6 +41,7 @@ export async function sendRegistrationEmail(
   //   html: \`
   //     <h1>Data Pendaftaran Siswa Baru</h1>
   //     <p>Seorang calon siswa/siswi baru telah mendaftar dengan data sebagai berikut:</p>
+  //     <p><strong>Akun Pendaftar (Username):</strong> \${formData.username}</p>
   //     <h2>Data Siswa</h2>
   //     <p><strong>Nama Lengkap:</strong> \${formData.fullName}</p>
   //     <p><strong>NISN:</strong> \${formData.nisn}</p>
@@ -66,3 +75,5 @@ export async function sendRegistrationEmail(
 
   return { success: true, message: 'Email sent successfully (simulated)' };
 }
+
+    

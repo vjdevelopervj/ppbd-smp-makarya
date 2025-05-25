@@ -32,7 +32,7 @@ import { id } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { sendRegistrationEmail } from '@/app/actions/registrationActions'; // Server Action
+import { sendRegistrationEmail } from '@/app/actions/registrationActions';
 
 const registrationFormSchema = z.object({
   fullName: z.string().min(3, { message: 'Nama lengkap minimal 3 karakter.' }),
@@ -58,9 +58,9 @@ const registrationFormSchema = z.object({
 export type RegistrationFormData = z.infer<typeof registrationFormSchema>;
 
 // Interface untuk data aplikasi siswa yang akan disimpan di localStorage
-// Ini sekarang mencakup semua RegistrationFormData
-interface StudentApplicationDataToStore extends RegistrationFormData {
+export interface StudentApplicationDataToStore extends RegistrationFormData {
   id: string; // Gunakan NISN sebagai ID unik
+  username: string; // Username akun yang melakukan pendaftaran
   formSubmittedDate: string; // ISO string date
   quizCompleted: boolean;
   quizScore?: number;
@@ -96,14 +96,12 @@ export default function RegistrationForm() {
     },
   });
 
-  // Fields for student data step
   const studentFields: (keyof RegistrationFormData)[] = [
     'fullName', 'nisn', 'gender', 'birthPlace', 'birthDate', 
     'religion', 'address', 'studentPhoneNumber', 'previousSchool', 'lastCertificate'
   ];
 
   const handleNextStep = async () => {
-    // Trigger validation for student fields only
     const isValid = await form.trigger(studentFields);
     if (isValid) {
       setCurrentStep(2);
@@ -122,20 +120,29 @@ export default function RegistrationForm() {
 
   async function onSubmit(data: RegistrationFormData) {
     setIsSubmitting(true);
+    let registeredUsername = '';
+    if (typeof window !== 'undefined') {
+      registeredUsername = localStorage.getItem('userEmail') || 'anonim'; // Get username from localStorage
+    }
+
     try {
-      const result = await sendRegistrationEmail(data);
+      // Include username in the data sent to the server action
+      const result = await sendRegistrationEmail({
+        ...data,
+        username: registeredUsername 
+      });
+
       if (result.success) {
-        // Save student application data to localStorage
         if (typeof window !== 'undefined') {
           const applicationsRaw = localStorage.getItem(STUDENT_APPLICATIONS_KEY);
           let applications: StudentApplicationDataToStore[] = applicationsRaw ? JSON.parse(applicationsRaw) : [];
           
           const existingApplicationIndex = applications.findIndex(app => app.nisn === data.nisn);
           
-          // Create the new application data with all fields from the form
           const newApplicationData: StudentApplicationDataToStore = {
-            ...data, // Spread all fields from RegistrationFormData
-            birthDate: data.birthDate.toISOString(), // Convert Date to ISO string for storage
+            ...data,
+            username: registeredUsername, // Store username
+            birthDate: data.birthDate.toISOString(),
             id: data.nisn,
             formSubmittedDate: new Date().toISOString(),
             quizCompleted: false, 
@@ -187,7 +194,6 @@ export default function RegistrationForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         {currentStep === 1 && (
           <>
-            {/* Data Siswa */}
             <h3 className="text-xl font-semibold text-primary pt-4 border-b">Data Calon Siswa (Langkah 1 dari 2)</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
@@ -388,7 +394,6 @@ export default function RegistrationForm() {
 
         {currentStep === 2 && (
           <>
-            {/* Data Orang Tua/Wali */}
             <h3 className="text-xl font-semibold text-primary pt-4 border-t mt-8">Data Orang Tua/Wali (Langkah 2 dari 2)</h3>
 
             <FormField
@@ -510,3 +515,5 @@ export default function RegistrationForm() {
     </Form>
   );
 }
+
+    

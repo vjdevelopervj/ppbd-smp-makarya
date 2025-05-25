@@ -5,11 +5,11 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX, Trash2, Download, MessageSquareText, Send } from 'lucide-react';
+import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX, Trash2, Download, MessageSquareText, Send, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label'; // Added import for Label
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -30,8 +30,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import type { AdminInboxMessage } from '@/app/kontak/page'; // Import type from kontak page
-import type { UserNotification } from '@/app/notifikasi/page'; // Import type from notifikasi page
+import type { AdminInboxMessage } from '@/app/kontak/page';
+import type { UserNotification } from '@/app/notifikasi/page';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -45,6 +45,7 @@ interface RegisteredUser {
 
 interface StudentApplication {
   id: string; // NISN
+  username: string; // Username of the account that registered this student
   fullName: string;
   nisn: string;
   gender: string;
@@ -295,13 +296,11 @@ export default function AdminDashboardPage() {
       userNotifications.push(newReplyNotification);
       localStorage.setItem(userNotificationsKey, JSON.stringify(userNotifications));
 
-      // Mark original message as replied
       const updatedAdminMessages = adminInboxMessages.map(msg => 
         msg.id === replyingToMessage.id ? { ...msg, isReplied: true } : msg
       );
       localStorage.setItem(ADMIN_INBOX_MESSAGES_KEY, JSON.stringify(updatedAdminMessages));
       setAdminInboxMessages(updatedAdminMessages);
-      // If the main modal is open and showing admin messages, update it too
       if (modalContent?.dataTypeKey === 'incomingMessages') {
         setModalContent(prev => prev ? {...prev, data: updatedAdminMessages} : null);
       }
@@ -338,6 +337,7 @@ export default function AdminDashboardPage() {
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead>Akun Pendaftar</TableHead>
           <TableHead>NISN</TableHead>
           <TableHead>Nama</TableHead>
           <TableHead>JK</TableHead>
@@ -362,6 +362,7 @@ export default function AdminDashboardPage() {
       <TableBody>
         {data.map((app) => (
           <TableRow key={app.id}>
+            <TableCell className="font-medium">{app.username}</TableCell>
             <TableCell className="font-medium">{app.nisn}</TableCell>
             <TableCell>{app.fullName}</TableCell>
             <TableCell>{app.gender}</TableCell>
@@ -395,6 +396,7 @@ export default function AdminDashboardPage() {
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead>Akun Pendaftar</TableHead>
           <TableHead>NISN</TableHead>
           <TableHead>Nama Lengkap</TableHead>
           <TableHead>Tgl. Form</TableHead>
@@ -407,6 +409,7 @@ export default function AdminDashboardPage() {
       <TableBody>
         {(data as StudentApplication[]).map((app) => (
           <TableRow key={app.id}>
+            <TableCell className="font-medium">{app.username}</TableCell>
             <TableCell className="font-medium">{app.nisn}</TableCell>
             <TableCell>{app.fullName}</TableCell>
             <TableCell>{new Date(app.formSubmittedDate).toLocaleDateString('id-ID')}</TableCell>
@@ -687,7 +690,6 @@ export default function AdminDashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Reply Modal */}
       <Dialog open={isReplyModalOpen} onOpenChange={setIsReplyModalOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -746,9 +748,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    
-
-      
 
     
