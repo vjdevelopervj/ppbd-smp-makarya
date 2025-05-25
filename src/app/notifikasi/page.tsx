@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Inbox, BellRing, KeyRound, FileText, Trash2, AlertTriangle } from 'lucide-react';
+import { Inbox, BellRing, KeyRound, FileText, Trash2, AlertTriangle, MessageSquareReply } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -13,32 +13,33 @@ export interface UserNotification {
   id: string;
   type: 'examResult' | 'passwordResetRequest' | 'adminMessage';
   title: string;
-  message?: string; // Optional, might be constructed from payload
+  message?: string; 
   timestamp: string; // ISO string
-  payload?: any;
-  isRead?: boolean; // Future use
+  payload?: any; // For examResult: { studentName, nisn, score, totalQuestions, isPassed }
+                  // For passwordReset: { resetLink }
+                  // For adminMessage: { originalSubject?, originalSender? }
+  isRead?: boolean;
 }
 
 const USER_NOTIFICATIONS_BASE_KEY = 'smpMakaryaUserNotifications_';
 
 export default function NotificationPage() {
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
-  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null); // Changed to store email
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const userEmail = localStorage.getItem('userEmail'); // Username of the logged-in user
+      const userEmail = localStorage.getItem('userEmail'); // This is the username/email
       const userRole = localStorage.getItem('userRole');
       
       if (userEmail && userRole === 'user') {
-        setCurrentUser(userEmail);
+        setCurrentUserEmail(userEmail);
         const notificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${userEmail}`;
         const storedNotificationsRaw = localStorage.getItem(notificationsKey);
         if (storedNotificationsRaw) {
           try {
             const parsedNotifications: UserNotification[] = JSON.parse(storedNotificationsRaw);
-            // Sort by timestamp, newest first
             parsedNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
             setNotifications(parsedNotifications);
           } catch (error) {
@@ -52,8 +53,8 @@ export default function NotificationPage() {
   }, []);
 
   const handleDeleteAllNotifications = () => {
-    if (typeof window !== 'undefined' && currentUser) {
-      const notificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${currentUser}`;
+    if (typeof window !== 'undefined' && currentUserEmail) {
+      const notificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${currentUserEmail}`;
       localStorage.removeItem(notificationsKey);
       setNotifications([]);
     }
@@ -62,11 +63,11 @@ export default function NotificationPage() {
   const getIconForType = (type: UserNotification['type']) => {
     switch (type) {
       case 'examResult':
-        return <FileText className="h-5 w-5 mr-3" />;
+        return <FileText className="h-5 w-5 mr-3 text-green-500" />;
       case 'passwordResetRequest':
         return <KeyRound className="h-5 w-5 mr-3 text-orange-500" />;
       case 'adminMessage':
-        return <BellRing className="h-5 w-5 mr-3 text-blue-500" />;
+        return <MessageSquareReply className="h-5 w-5 mr-3 text-blue-500" />; // Changed icon
       default:
         return <Inbox className="h-5 w-5 mr-3" />;
     }
@@ -75,12 +76,13 @@ export default function NotificationPage() {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-300px)] py-12">
-        <p>Memuat notifikasi...</p>
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="ml-3 text-muted-foreground">Memuat notifikasi...</p>
       </div>
     );
   }
 
-  if (!currentUser) {
+  if (!currentUserEmail) {
     return (
        <div className="flex justify-center items-center min-h-[calc(100vh-300px)] py-12">
         <Card className="w-full max-w-lg text-center shadow-xl animate-fade-in-up">
@@ -136,7 +138,7 @@ export default function NotificationPage() {
       ) : (
         <div className="space-y-6">
           {notifications.map((notification) => (
-            <Card key={notification.id} className="shadow-lg hover:shadow-xl transition-shadow">
+            <Card key={notification.id} className={`shadow-lg hover:shadow-xl transition-shadow ${notification.isRead ? 'opacity-70' : ''}`}>
               <CardHeader className="flex flex-row items-start">
                 {getIconForType(notification.type)}
                 <div>
@@ -168,12 +170,29 @@ export default function NotificationPage() {
                     )}
                   </div>
                 )}
-                {/* Placeholder for admin messages */}
                 {notification.type === 'adminMessage' && (
-                  <p>{notification.message}</p>
+                  <div className="space-y-1">
+                    {notification.payload?.originalSubject && (
+                      <p className="text-xs text-muted-foreground">
+                        Menanggapi pesan Anda tentang: "{notification.payload.originalSubject}"
+                      </p>
+                    )}
+                    <p className="whitespace-pre-wrap">{notification.message}</p>
+                  </div>
                 )}
               </CardContent>
-              {/* Future: Add action buttons like "Mark as read" or "View Details" if needed */}
+              {/* {notification.type !== 'passwordResetRequest' && !notification.isRead && (
+                <CardFooter>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    // Mark as read logic (future)
+                    const updatedNotifications = notifications.map(n => n.id === notification.id ? {...n, isRead: true} : n);
+                    setNotifications(updatedNotifications);
+                    // Also update localStorage if persistence of read state is needed
+                  }}>
+                    Tandai Sudah Dibaca
+                  </Button>
+                </CardFooter>
+              )} */}
             </Card>
           ))}
         </div>
@@ -181,3 +200,5 @@ export default function NotificationPage() {
     </div>
   );
 }
+
+    

@@ -5,8 +5,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX, Trash2, Download } from 'lucide-react';
+import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX, Trash2, Download, MessageSquareText, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import {
   Dialog,
   DialogContent,
@@ -25,9 +27,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import type { AdminInboxMessage } from '@/app/kontak/page'; // Import type from kontak page
+import type { UserNotification } from '@/app/notifikasi/page'; // Import type from notifikasi page
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 interface RegisteredUser {
   id: string;
@@ -64,6 +69,9 @@ interface StudentApplication {
 
 const REGISTERED_USERS_KEY = 'smpMakaryaRegisteredUsers';
 const STUDENT_APPLICATIONS_KEY = 'smpMakaryaStudentApplications';
+const ADMIN_INBOX_MESSAGES_KEY = 'smpMakaryaAdminInboxMessages';
+const USER_NOTIFICATIONS_BASE_KEY = 'smpMakaryaUserNotifications_';
+
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -75,20 +83,27 @@ export default function AdminDashboardPage() {
   const [newApplicantsCount, setNewApplicantsCount] = useState(0); 
   const [passedStudentsCount, setPassedStudentsCount] = useState(0);
   const [failedStudentsCount, setFailedStudentsCount] = useState(0);
+  const [incomingMessagesCount, setIncomingMessagesCount] = useState(0);
 
   const [detailedRegisteredUsers, setDetailedRegisteredUsers] = useState<RegisteredUser[]>([]);
   const [detailedStudentApplications, setDetailedStudentApplications] = useState<StudentApplication[]>([]);
+  const [adminInboxMessages, setAdminInboxMessages] = useState<AdminInboxMessage[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState<{
     title: string;
-    data: RegisteredUser[] | StudentApplication[];
-    type: 'users' | 'applications';
-    dataTypeKey: 'registeredUsers' | 'newApplicants' | 'passedStudents' | 'failedStudents';
+    data: RegisteredUser[] | StudentApplication[] | AdminInboxMessage[];
+    type: 'users' | 'applications' | 'adminMessages';
+    dataTypeKey: 'registeredUsers' | 'newApplicants' | 'passedStudents' | 'failedStudents' | 'incomingMessages';
   } | null>(null);
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'user' | 'application' } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'user' | 'application' | 'adminMessage' } | null>(null);
+
+  const [isReplyModalOpen, setIsReplyModalOpen] = useState(false);
+  const [replyingToMessage, setReplyingToMessage] = useState<AdminInboxMessage | null>(null);
+  const [replyMessage, setReplyMessage] = useState('');
+
 
   const loadData = useCallback(() => {
     const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
@@ -116,6 +131,13 @@ export default function AdminDashboardPage() {
 
     const failed = studentApplicationsData.filter(app => app.quizCompleted && app.passedQuiz === false);
     setFailedStudentsCount(failed.length);
+
+    const adminMessagesRaw = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_INBOX_MESSAGES_KEY) : null;
+    const adminMessagesData: AdminInboxMessage[] = adminMessagesRaw ? JSON.parse(adminMessagesRaw) : [];
+    adminMessagesData.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    setAdminInboxMessages(adminMessagesData);
+    setIncomingMessagesCount(adminMessagesData.length);
+
   }, []);
 
   useEffect(() => {
@@ -131,9 +153,9 @@ export default function AdminDashboardPage() {
 
   const handleCardClick = (
     title: string,
-    baseData: RegisteredUser[] | StudentApplication[],
-    type: 'users' | 'applications',
-    dataTypeKey: 'registeredUsers' | 'newApplicants' | 'passedStudents' | 'failedStudents'
+    baseData: RegisteredUser[] | StudentApplication[] | AdminInboxMessage[],
+    type: 'users' | 'applications' | 'adminMessages',
+    dataTypeKey: 'registeredUsers' | 'newApplicants' | 'passedStudents' | 'failedStudents' | 'incomingMessages'
   ) => {
     let dataToShow = baseData;
     if (type === 'applications') {
@@ -144,12 +166,14 @@ export default function AdminDashboardPage() {
         } else if (dataTypeKey === 'failedStudents') {
             dataToShow = detailedStudentApplications.filter(app => app.quizCompleted && app.passedQuiz === false);
         }
+    } else if (type === 'adminMessages' && dataTypeKey === 'incomingMessages') {
+        dataToShow = adminInboxMessages;
     }
-    setModalContent({ title, data: [...dataToShow], type, dataTypeKey }); // Clone data
+    setModalContent({ title, data: [...dataToShow], type, dataTypeKey }); 
     setIsModalOpen(true);
   };
 
-  const handleDeleteConfirmation = (id: string, type: 'user' | 'application') => {
+  const handleDeleteConfirmation = (id: string, type: 'user' | 'application' | 'adminMessage') => {
     setItemToDelete({ id, type });
     setIsDeleteAlertOpen(true);
   };
@@ -182,6 +206,14 @@ export default function AdminDashboardPage() {
           setModalContent(prev => prev ? {...prev, data: currentModalData} : null);
       }
       toast({ title: "Aplikasi Dihapus", description: `Aplikasi siswa dengan NISN ${itemToDelete.id} telah dihapus.` });
+    } else if (itemToDelete.type === 'adminMessage') {
+      const updatedMessages = adminInboxMessages.filter(msg => msg.id !== itemToDelete!.id);
+      localStorage.setItem(ADMIN_INBOX_MESSAGES_KEY, JSON.stringify(updatedMessages));
+      setAdminInboxMessages(updatedMessages);
+      if (modalContent?.dataTypeKey === 'incomingMessages') {
+        setModalContent(prev => prev ? {...prev, data: updatedMessages} : null);
+      }
+      toast({ title: "Pesan Dihapus", description: `Pesan dari pengguna telah dihapus.` });
     }
     loadData(); 
     setIsDeleteAlertOpen(false);
@@ -225,6 +257,58 @@ export default function AdminDashboardPage() {
       toast({ title: "Ekspor Berhasil", description: `${filename} telah diunduh.` });
     } else {
        toast({ title: "Ekspor Gagal", description: "Browser Anda tidak mendukung fitur unduh.", variant: "destructive" });
+    }
+  };
+
+  const handleOpenReplyModal = (message: AdminInboxMessage) => {
+    setReplyingToMessage(message);
+    setReplyMessage('');
+    setIsReplyModalOpen(true);
+  };
+
+  const handleSendReply = () => {
+    if (!replyingToMessage || !replyMessage.trim()) {
+      toast({ title: "Gagal Mengirim", description: "Pesan balasan tidak boleh kosong.", variant: "destructive" });
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      const userNotificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${replyingToMessage.fromEmail}`;
+      let userNotifications: UserNotification[] = [];
+      const storedNotificationsRaw = localStorage.getItem(userNotificationsKey);
+      if (storedNotificationsRaw) {
+        try {
+          userNotifications = JSON.parse(storedNotificationsRaw);
+        } catch (e) { console.error("Error parsing user notifications:", e); }
+      }
+
+      const newReplyNotification: UserNotification = {
+        id: new Date().toISOString() + Math.random().toString(36).substring(2, 15),
+        type: 'adminMessage',
+        title: `Balasan dari Admin: ${replyingToMessage.subject}`,
+        message: replyMessage,
+        timestamp: new Date().toISOString(),
+        payload: { originalSubject: replyingToMessage.subject, originalSender: replyingToMessage.fromName },
+        isRead: false,
+      };
+      userNotifications.push(newReplyNotification);
+      localStorage.setItem(userNotificationsKey, JSON.stringify(userNotifications));
+
+      // Mark original message as replied
+      const updatedAdminMessages = adminInboxMessages.map(msg => 
+        msg.id === replyingToMessage.id ? { ...msg, isReplied: true } : msg
+      );
+      localStorage.setItem(ADMIN_INBOX_MESSAGES_KEY, JSON.stringify(updatedAdminMessages));
+      setAdminInboxMessages(updatedAdminMessages);
+      // If the main modal is open and showing admin messages, update it too
+      if (modalContent?.dataTypeKey === 'incomingMessages') {
+        setModalContent(prev => prev ? {...prev, data: updatedAdminMessages} : null);
+      }
+      
+      toast({ title: "Balasan Terkirim", description: `Pesan balasan telah dikirim ke notifikasi ${replyingToMessage.fromName}.` });
+      setIsReplyModalOpen(false);
+      setReplyingToMessage(null);
+      setReplyMessage('');
     }
   };
 
@@ -347,6 +431,48 @@ export default function AdminDashboardPage() {
     </Table>
   );
 
+  const renderAdminInboxTable = (data: AdminInboxMessage[]) => (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Tanggal</TableHead>
+          <TableHead>Dari</TableHead>
+          <TableHead>Email</TableHead>
+          <TableHead>Subjek</TableHead>
+          <TableHead className="min-w-[250px]">Pesan</TableHead>
+          <TableHead>Status</TableHead>
+          <TableHead>Aksi</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {data.map((msg) => (
+          <TableRow key={msg.id}>
+            <TableCell>{format(new Date(msg.timestamp), "dd MMM yy, HH:mm", { locale: id })}</TableCell>
+            <TableCell>{msg.fromName}</TableCell>
+            <TableCell>{msg.fromEmail}</TableCell>
+            <TableCell>{msg.subject}</TableCell>
+            <TableCell className="max-w-md whitespace-pre-wrap break-words">{msg.message}</TableCell>
+             <TableCell>
+              {msg.isReplied ? 
+                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">Dibalas</span> : 
+                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">Baru</span>
+              }
+            </TableCell>
+            <TableCell className="space-x-1">
+              <Button variant="outline" size="sm" onClick={() => handleOpenReplyModal(msg)} disabled={msg.isReplied}>
+                <Send className="mr-1 h-3 w-3" /> {msg.isReplied ? 'Telah Dibalas': 'Balas'}
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => handleDeleteConfirmation(msg.id, 'adminMessage')}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+
+
   return (
     <div className="space-y-8 py-8">
       <Card className="shadow-xl animate-fade-in-up">
@@ -361,7 +487,7 @@ export default function AdminDashboardPage() {
         </CardHeader>
       </Card>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 animate-fade-in-up animation-delay-300">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 animate-fade-in-up animation-delay-300">
         <Card 
           className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
           onClick={() => handleCardClick(
@@ -380,7 +506,7 @@ export default function AdminDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{registeredUserCount}</div>
             <p className="text-xs text-muted-foreground">
-              Total akun pengguna yang telah registrasi.
+              Total akun pengguna.
             </p>
           </CardContent>
         </Card>
@@ -404,7 +530,7 @@ export default function AdminDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{newApplicantsCount}</div>
             <p className="text-xs text-muted-foreground">
-              Calon siswa yang isi form & selesaikan tes.
+              Isi form & selesaikan tes.
             </p>
           </CardContent>
         </Card>
@@ -428,7 +554,7 @@ export default function AdminDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold text-green-600">{passedStudentsCount}</div>
             <p className="text-xs text-muted-foreground">
-              Siswa yang memenuhi syarat kelulusan tes.
+              Memenuhi syarat kelulusan.
             </p>
           </CardContent>
         </Card>
@@ -452,7 +578,30 @@ export default function AdminDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{failedStudentsCount}</div>
             <p className="text-xs text-muted-foreground">
-              Siswa yang tidak memenuhi syarat kelulusan tes.
+              Tidak memenuhi syarat.
+            </p>
+          </CardContent>
+        </Card>
+        <Card 
+          className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+          onClick={() => handleCardClick(
+              "Pesan Masuk dari Pengguna",
+              adminInboxMessages,
+              'adminMessages',
+              'incomingMessages'
+            )
+          }
+        >
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-purple-600">
+              Pesan Pengguna
+            </CardTitle>
+            <MessageSquareText className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-purple-600">{incomingMessagesCount}</div>
+            <p className="text-xs text-muted-foreground">
+              Pesan dari form kontak.
             </p>
           </CardContent>
         </Card>
@@ -504,11 +653,12 @@ export default function AdminDashboardPage() {
                       </Table>
                     )}
                     {modalContent.type === 'applications' && (
-                      (modalContent.dataTypeKey === "newApplicants" || modalContent.dataTypeKey === "passedStudents" || modalContent.dataTypeKey === "failedStudents") ?
-                      ( (modalContent.dataTypeKey === "newApplicants") ?
+                      (modalContent.dataTypeKey === "newApplicants") ?
                         renderFullApplicationDetailsTable(modalContent.data as StudentApplication[]) :
                         renderQuizStatusTable(modalContent.data as StudentApplication[])
-                      ) : null
+                    )}
+                    {modalContent.type === 'adminMessages' && modalContent.dataTypeKey === 'incomingMessages' && (
+                      renderAdminInboxTable(modalContent.data as AdminInboxMessage[])
                     )}
                   </>
                 ) : (
@@ -536,6 +686,46 @@ export default function AdminDashboardPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Reply Modal */}
+      <Dialog open={isReplyModalOpen} onOpenChange={setIsReplyModalOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Balas Pesan dari: {replyingToMessage?.fromName}</DialogTitle>
+            <DialogDescription>
+              Kirim balasan ke email: {replyingToMessage?.fromEmail} (Notifikasi akan muncul di akun pengguna)
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div>
+              <p className="text-sm font-medium">Subjek Asli:</p>
+              <p className="text-sm text-muted-foreground p-2 border rounded-md">{replyingToMessage?.subject}</p>
+            </div>
+            <div>
+              <p className="text-sm font-medium">Pesan Asli:</p>
+              <p className="text-sm text-muted-foreground p-2 border rounded-md max-h-24 overflow-y-auto">{replyingToMessage?.message}</p>
+            </div>
+            <div>
+              <Label htmlFor="replyMessageText" className="text-sm font-medium">Pesan Balasan Anda:</Label>
+              <Textarea
+                id="replyMessageText"
+                value={replyMessage}
+                onChange={(e) => setReplyMessage(e.target.value)}
+                placeholder="Ketik balasan Anda di sini..."
+                rows={5}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsReplyModalOpen(false)}>Batal</Button>
+            <Button onClick={handleSendReply} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Send className="mr-2 h-4 w-4" /> Kirim Balasan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -555,3 +745,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    

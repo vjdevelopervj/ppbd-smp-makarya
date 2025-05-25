@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, MapPin, Phone, Send } from 'lucide-react';
+import { Mail, MapPin, Phone, Send, MessageSquarePlus } from 'lucide-react';
 import Image from 'next/image';
 
 const contactFormSchema = z.object({
@@ -28,6 +29,19 @@ const contactFormSchema = z.object({
 });
 
 type ContactFormData = z.infer<typeof contactFormSchema>;
+
+export interface AdminInboxMessage {
+  id: string;
+  fromName: string;
+  fromEmail: string;
+  subject: string;
+  message: string;
+  timestamp: string; // ISO string
+  isRead?: boolean;
+  isReplied?: boolean;
+}
+
+const ADMIN_INBOX_MESSAGES_KEY = 'smpMakaryaAdminInboxMessages';
 
 export default function ContactPage() {
   const { toast } = useToast();
@@ -42,18 +56,38 @@ export default function ContactPage() {
   });
 
   async function onSubmit(data: ContactFormData) {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    console.log('Contact form submitted:', data);
+    setIsSubmitting(true);
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API delay
+
+    // Store message for admin inbox
+    if (typeof window !== 'undefined') {
+      const adminMessagesRaw = localStorage.getItem(ADMIN_INBOX_MESSAGES_KEY);
+      let adminMessages: AdminInboxMessage[] = adminMessagesRaw ? JSON.parse(adminMessagesRaw) : [];
+      
+      const newMessage: AdminInboxMessage = {
+        id: new Date().toISOString() + Math.random().toString(36).substring(2, 10),
+        fromName: data.name,
+        fromEmail: data.email,
+        subject: data.subject,
+        message: data.message,
+        timestamp: new Date().toISOString(),
+        isRead: false,
+        isReplied: false,
+      };
+      adminMessages.push(newMessage);
+      localStorage.setItem(ADMIN_INBOX_MESSAGES_KEY, JSON.stringify(adminMessages));
+    }
 
     toast({
       title: 'Pesan Terkirim!',
-      description: 'Terima kasih telah menghubungi kami. Pesan Anda akan segera kami proses.',
+      description: 'Terima kasih telah menghubungi kami. Pesan Anda telah dikirim ke admin dan akan segera diproses.',
       variant: 'default',
       className: 'bg-accent text-accent-foreground',
     });
     form.reset();
+    setIsSubmitting(false);
   }
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   return (
     <div className="space-y-12">
@@ -99,9 +133,8 @@ export default function ContactPage() {
               </div>
             </div>
             <div className="mt-8 rounded-lg overflow-hidden shadow-md">
-              {/* Placeholder for map. In a real app, use an embedded map component. */}
               <Image 
-                src="https://picsum.photos/600/350?random=map" 
+                src="https://placehold.co/600x350.png"
                 alt="Peta Lokasi SMP Makarya" 
                 width={600} 
                 height={350}
@@ -133,7 +166,7 @@ export default function ContactPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Alamat Email</FormLabel>
+                      <FormLabel>Alamat Email Anda (Untuk Balasan)</FormLabel>
                       <FormControl>
                         <Input type="email" placeholder="email@anda.com" {...field} />
                       </FormControl>
@@ -167,12 +200,12 @@ export default function ContactPage() {
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={form.formState.isSubmitting}>
-                  {form.formState.isSubmitting ? (
+                <Button type="submit" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground" disabled={isSubmitting}>
+                  {isSubmitting ? (
                     'Mengirim...'
                   ) : (
                     <>
-                      <Send className="mr-2 h-5 w-5" /> Kirim Pesan
+                      <Send className="mr-2 h-5 w-5" /> Kirim Pesan ke Admin
                     </>
                   )}
                 </Button>
@@ -184,3 +217,5 @@ export default function ContactPage() {
     </div>
   );
 }
+
+    
