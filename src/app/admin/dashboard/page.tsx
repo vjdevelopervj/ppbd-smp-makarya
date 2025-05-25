@@ -7,6 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 interface RegisteredUser {
   id: string;
@@ -16,12 +25,11 @@ interface RegisteredUser {
   role: string;
 }
 
-// Interface for student application data, matches the one in registration & quiz
 interface StudentApplication {
-  id: string; // Use NISN
+  id: string; 
   fullName: string;
   nisn: string;
-  formSubmittedDate: string; // ISO string
+  formSubmittedDate: string; 
   quizCompleted: boolean;
   quizScore?: number;
   passedQuiz?: boolean;
@@ -34,23 +42,27 @@ export default function AdminDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   
-  // Data for cards
   const [registeredUserCount, setRegisteredUserCount] = useState(0);
-  const [newApplicantsCount, setNewApplicantsCount] = useState(0); // Form + Test Done
+  const [newApplicantsCount, setNewApplicantsCount] = useState(0); 
   const [passedStudentsCount, setPassedStudentsCount] = useState(0);
   const [failedStudentsCount, setFailedStudentsCount] = useState(0);
 
   const [detailedRegisteredUsers, setDetailedRegisteredUsers] = useState<RegisteredUser[]>([]);
-  // State to hold student application details for a new table (optional for now, but good for future)
   const [detailedStudentApplications, setDetailedStudentApplications] = useState<StudentApplication[]>([]);
 
+  // State for Modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalContent, setModalContent] = useState<{
+    title: string;
+    data: RegisteredUser[] | StudentApplication[];
+    type: 'users' | 'applications';
+  } | null>(null);
 
   useEffect(() => {
     const adminSignedIn = typeof window !== 'undefined' ? localStorage.getItem('isAdminSignedIn') : null;
     if (adminSignedIn === 'true') {
       setIsAdminAuthenticated(true);
       
-      // Card 1: Registered Users
       const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem('smpMakaryaRegisteredUsers') : null;
       const storedUsersFromUserReg = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
       setRegisteredUserCount(storedUsersFromUserReg.length);
@@ -59,35 +71,38 @@ export default function AdminDashboardPage() {
         id: user.username, 
         username: user.username,
         fullName: user.fullName,
-        // Simulate registration date - in a real app, this would be stored
         registrationDate: user.registrationDate || new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toLocaleDateString('id-ID'), 
         role: 'user', 
       }));
       setDetailedRegisteredUsers(formattedUsers);
 
-      // --- Fetch and process student applications data ---
       const studentApplicationsRaw = typeof window !== 'undefined' ? localStorage.getItem(STUDENT_APPLICATIONS_KEY) : null;
-      const studentApplications: StudentApplication[] = studentApplicationsRaw ? JSON.parse(studentApplicationsRaw) : [];
-      setDetailedStudentApplications(studentApplications); // Store for potential detailed table later
+      const studentApplicationsData: StudentApplication[] = studentApplicationsRaw ? JSON.parse(studentApplicationsRaw) : [];
+      setDetailedStudentApplications(studentApplicationsData);
 
-      // Card 2: New Student Applicants (Form + Test Done)
-      const applicantsWithTestDone = studentApplications.filter(app => app.quizCompleted);
+      const applicantsWithTestDone = studentApplicationsData.filter(app => app.quizCompleted);
       setNewApplicantsCount(applicantsWithTestDone.length);
 
-      // Card 3: Students Passed Quiz
-      const passed = studentApplications.filter(app => app.quizCompleted && app.passedQuiz === true);
+      const passed = studentApplicationsData.filter(app => app.quizCompleted && app.passedQuiz === true);
       setPassedStudentsCount(passed.length);
 
-      // Card 4: Students Failed Quiz
-      const failed = studentApplications.filter(app => app.quizCompleted && app.passedQuiz === false);
+      const failed = studentApplicationsData.filter(app => app.quizCompleted && app.passedQuiz === false);
       setFailedStudentsCount(failed.length);
-      // --- End Student Applications Data ---
 
     } else {
       router.push('/admin/login'); 
     }
     setIsLoading(false);
   }, [router]);
+
+  const handleCardClick = (
+    title: string,
+    data: RegisteredUser[] | StudentApplication[],
+    type: 'users' | 'applications'
+  ) => {
+    setModalContent({ title, data, type });
+    setIsModalOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -123,9 +138,15 @@ export default function AdminDashboardPage() {
         </CardHeader>
       </Card>
 
-      {/* Summary Cards Section */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 animate-fade-in-up animation-delay-300">
-        <Card className="shadow-lg hover:shadow-xl transition-shadow">
+        <Card 
+          className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+          onClick={() => handleCardClick(
+            "Detail Pengguna Terdaftar",
+            detailedRegisteredUsers,
+            'users'
+          )}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-primary">
               Pengguna Terdaftar
@@ -140,7 +161,17 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-lg hover:shadow-xl transition-shadow">
+        <Card 
+          className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+          onClick={() => {
+            const applicantsWithTestDone = detailedStudentApplications.filter(app => app.quizCompleted);
+            handleCardClick(
+              "Detail Pendaftar (Tes Selesai)",
+              applicantsWithTestDone,
+              'applications'
+            );
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-primary">
               Pendaftar (Tes Selesai)
@@ -155,7 +186,17 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-lg hover:shadow-xl transition-shadow">
+        <Card 
+          className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+          onClick={() => {
+            const passed = detailedStudentApplications.filter(app => app.quizCompleted && app.passedQuiz === true);
+            handleCardClick(
+              "Detail Siswa Lulus Tes",
+              passed,
+              'applications'
+            );
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-green-600">
               Siswa Lulus Tes
@@ -170,7 +211,17 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-lg hover:shadow-xl transition-shadow">
+        <Card 
+          className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
+          onClick={() => {
+            const failed = detailedStudentApplications.filter(app => app.quizCompleted && app.passedQuiz === false);
+            handleCardClick(
+              "Detail Siswa Tidak Lulus Tes",
+              failed,
+              'applications'
+            );
+          }}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-destructive">
               Siswa Tidak Lulus Tes
@@ -186,7 +237,6 @@ export default function AdminDashboardPage() {
         </Card>
       </div>
 
-      {/* Detailed Registered Users Table */}
       <Card className="shadow-xl animate-fade-in-up animation-delay-500">
         <CardHeader>
           <CardTitle className="text-xl font-semibold text-primary">Database Akun Pengguna</CardTitle>
@@ -231,7 +281,6 @@ export default function AdminDashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Detailed Student Applications Table (Example - can be expanded) */}
       <Card className="shadow-xl animate-fade-in-up animation-delay-700">
         <CardHeader>
             <CardTitle className="text-xl font-semibold text-primary">Data Pendaftar Siswa</CardTitle>
@@ -283,8 +332,91 @@ export default function AdminDashboardPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal for displaying detailed data */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[90vw] md:max-w-[80vw] lg:max-w-[70vw] xl:max-w-[60vw] max-h-[85vh] flex flex-col">
+          {modalContent && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{modalContent.title}</DialogTitle>
+                <DialogDescription>
+                  Menampilkan {modalContent.data.length} entri untuk {modalContent.title.toLowerCase()}.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-4 overflow-y-auto flex-grow">
+                {modalContent.data.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      {modalContent.type === 'users' ? (
+                        <TableRow>
+                          <TableHead>Username</TableHead>
+                          <TableHead>Nama Lengkap</TableHead>
+                          <TableHead>Tgl. Registrasi</TableHead>
+                          <TableHead>Peran</TableHead>
+                        </TableRow>
+                      ) : (
+                        <TableRow>
+                          <TableHead>NISN</TableHead>
+                          <TableHead>Nama Lengkap</TableHead>
+                          <TableHead>Tgl. Form</TableHead>
+                          <TableHead>Tes Selesai</TableHead>
+                          <TableHead>Skor Tes</TableHead>
+                          <TableHead>Status Lulus</TableHead>
+                        </TableRow>
+                      )}
+                    </TableHeader>
+                    <TableBody>
+                      {modalContent.type === 'users' &&
+                        (modalContent.data as RegisteredUser[]).map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell className="font-medium">{user.username}</TableCell>
+                            <TableCell>{user.fullName}</TableCell>
+                            <TableCell>{user.registrationDate}</TableCell>
+                            <TableCell>
+                                <span className={'px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700'}>
+                                    {user.role}
+                                </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      {modalContent.type === 'applications' &&
+                        (modalContent.data as StudentApplication[]).map((app) => (
+                          <TableRow key={app.id}>
+                            <TableCell className="font-medium">{app.nisn}</TableCell>
+                            <TableCell>{app.fullName}</TableCell>
+                            <TableCell>{new Date(app.formSubmittedDate).toLocaleDateString('id-ID')}</TableCell>
+                            <TableCell>{app.quizCompleted ? 'Ya' : 'Belum'}</TableCell>
+                            <TableCell>{app.quizScore !== undefined ? app.quizScore : '-'}</TableCell>
+                            <TableCell>
+                              {app.quizCompleted ? (
+                                app.passedQuiz ? 
+                                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Lulus</span> : 
+                                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Tidak Lulus</span>
+                              ) : (
+                                '-'
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-10">
+                    <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <p className="mt-4 text-muted-foreground">Tidak ada data untuk ditampilkan.</p>
+                  </div>
+                )}
+              </div>
+              <DialogFooter className="mt-4">
+                <DialogClose asChild>
+                  <Button variant="outline">Tutup</Button>
+                </DialogClose>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
-    
