@@ -492,7 +492,7 @@ export default function AdminDashboardPage() {
         <Card 
           className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
           onClick={() => handleCardClick(
-            "Detail Pengguna Terdaftar",
+            "Detail Pengguna",
             detailedRegisteredUsers,
             'users',
             'registeredUsers'
@@ -500,7 +500,7 @@ export default function AdminDashboardPage() {
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-primary">
-              Pengguna Terdaftar
+              Pengguna
             </CardTitle>
             <Users className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
@@ -750,3 +750,5 @@ export default function AdminDashboardPage() {
     
 
       
+
+    
