@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX } from 'lucide-react';
+import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX, Trash2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,6 +16,18 @@ import {
   DialogFooter,
   DialogClose,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
 interface RegisteredUser {
   id: string;
@@ -25,7 +37,6 @@ interface RegisteredUser {
   role: string;
 }
 
-// This interface now includes all fields from RegistrationFormData
 interface StudentApplication {
   id: string; // NISN
   fullName: string;
@@ -51,10 +62,12 @@ interface StudentApplication {
   passedQuiz?: boolean;
 }
 
+const REGISTERED_USERS_KEY = 'smpMakaryaRegisteredUsers';
 const STUDENT_APPLICATIONS_KEY = 'smpMakaryaStudentApplications';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
   
@@ -71,53 +84,140 @@ export default function AdminDashboardPage() {
     title: string;
     data: RegisteredUser[] | StudentApplication[];
     type: 'users' | 'applications';
+    dataTypeKey: 'registeredUsers' | 'newApplicants' | 'passedStudents' | 'failedStudents';
   } | null>(null);
+
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'user' | 'application' } | null>(null);
+
+  const loadData = useCallback(() => {
+    const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
+    const storedUsersFromUserReg = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+    setRegisteredUserCount(storedUsersFromUserReg.length);
+    
+    const formattedUsers: RegisteredUser[] = storedUsersFromUserReg.map((user: any) => ({
+      id: user.username, 
+      username: user.username,
+      fullName: user.fullName,
+      registrationDate: user.registrationDate || new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toLocaleDateString('id-ID'), 
+      role: 'user', 
+    }));
+    setDetailedRegisteredUsers(formattedUsers);
+
+    const studentApplicationsRaw = typeof window !== 'undefined' ? localStorage.getItem(STUDENT_APPLICATIONS_KEY) : null;
+    const studentApplicationsData: StudentApplication[] = studentApplicationsRaw ? JSON.parse(studentApplicationsRaw) : [];
+    setDetailedStudentApplications(studentApplicationsData);
+
+    const applicantsWithTestDone = studentApplicationsData.filter(app => app.quizCompleted);
+    setNewApplicantsCount(applicantsWithTestDone.length);
+
+    const passed = studentApplicationsData.filter(app => app.quizCompleted && app.passedQuiz === true);
+    setPassedStudentsCount(passed.length);
+
+    const failed = studentApplicationsData.filter(app => app.quizCompleted && app.passedQuiz === false);
+    setFailedStudentsCount(failed.length);
+  }, []);
 
   useEffect(() => {
     const adminSignedIn = typeof window !== 'undefined' ? localStorage.getItem('isAdminSignedIn') : null;
     if (adminSignedIn === 'true') {
       setIsAdminAuthenticated(true);
-      
-      const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem('smpMakaryaRegisteredUsers') : null;
-      const storedUsersFromUserReg = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
-      setRegisteredUserCount(storedUsersFromUserReg.length);
-      
-      const formattedUsers: RegisteredUser[] = storedUsersFromUserReg.map((user: any) => ({
-        id: user.username, 
-        username: user.username,
-        fullName: user.fullName,
-        registrationDate: user.registrationDate || new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toLocaleDateString('id-ID'), 
-        role: 'user', 
-      }));
-      setDetailedRegisteredUsers(formattedUsers);
-
-      const studentApplicationsRaw = typeof window !== 'undefined' ? localStorage.getItem(STUDENT_APPLICATIONS_KEY) : null;
-      const studentApplicationsData: StudentApplication[] = studentApplicationsRaw ? JSON.parse(studentApplicationsRaw) : [];
-      setDetailedStudentApplications(studentApplicationsData);
-
-      const applicantsWithTestDone = studentApplicationsData.filter(app => app.quizCompleted);
-      setNewApplicantsCount(applicantsWithTestDone.length);
-
-      const passed = studentApplicationsData.filter(app => app.quizCompleted && app.passedQuiz === true);
-      setPassedStudentsCount(passed.length);
-
-      const failed = studentApplicationsData.filter(app => app.quizCompleted && app.passedQuiz === false);
-      setFailedStudentsCount(failed.length);
-
+      loadData();
     } else {
       router.push('/admin/login'); 
     }
     setIsLoading(false);
-  }, [router]);
+  }, [router, loadData]);
 
   const handleCardClick = (
     title: string,
-    data: RegisteredUser[] | StudentApplication[],
-    type: 'users' | 'applications'
+    baseData: RegisteredUser[] | StudentApplication[],
+    type: 'users' | 'applications',
+    dataTypeKey: 'registeredUsers' | 'newApplicants' | 'passedStudents' | 'failedStudents'
   ) => {
-    setModalContent({ title, data, type });
+    let dataToShow = baseData;
+    if (type === 'applications') {
+        if (dataTypeKey === 'newApplicants') {
+            dataToShow = detailedStudentApplications.filter(app => app.quizCompleted);
+        } else if (dataTypeKey === 'passedStudents') {
+            dataToShow = detailedStudentApplications.filter(app => app.quizCompleted && app.passedQuiz === true);
+        } else if (dataTypeKey === 'failedStudents') {
+            dataToShow = detailedStudentApplications.filter(app => app.quizCompleted && app.passedQuiz === false);
+        }
+    }
+    setModalContent({ title, data: [...dataToShow], type, dataTypeKey }); // Clone data
     setIsModalOpen(true);
   };
+
+  const handleDeleteConfirmation = (id: string, type: 'user' | 'application') => {
+    setItemToDelete({ id, type });
+    setIsDeleteAlertOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (!itemToDelete) return;
+
+    if (itemToDelete.type === 'user') {
+      const updatedUsers = detailedRegisteredUsers.filter(user => user.id !== itemToDelete.id);
+      localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedUsers.map(u => ({username: u.username, fullName: u.fullName, password: '***'})))); // Re-save without sensitive data if necessary
+      setDetailedRegisteredUsers(updatedUsers);
+      if (modalContent?.dataTypeKey === 'registeredUsers') {
+        setModalContent(prev => prev ? {...prev, data: updatedUsers} : null);
+      }
+      toast({ title: "Pengguna Dihapus", description: `Pengguna dengan username ${itemToDelete.id} telah dihapus.` });
+    } else if (itemToDelete.type === 'application') {
+      const updatedApplications = detailedStudentApplications.filter(app => app.id !== itemToDelete.id);
+      localStorage.setItem(STUDENT_APPLICATIONS_KEY, JSON.stringify(updatedApplications));
+      setDetailedStudentApplications(updatedApplications);
+      // Refresh modal data if it's showing applications
+      if (modalContent?.type === 'applications') {
+          let currentModalData = [];
+          if (modalContent.dataTypeKey === 'newApplicants') currentModalData = updatedApplications.filter(app => app.quizCompleted);
+          else if (modalContent.dataTypeKey === 'passedStudents') currentModalData = updatedApplications.filter(app => app.quizCompleted && app.passedQuiz === true);
+          else if (modalContent.dataTypeKey === 'failedStudents') currentModalData = updatedApplications.filter(app => app.quizCompleted && app.passedQuiz === false);
+          setModalContent(prev => prev ? {...prev, data: currentModalData} : null);
+      }
+      toast({ title: "Aplikasi Dihapus", description: `Aplikasi siswa dengan NISN ${itemToDelete.id} telah dihapus.` });
+    }
+    loadData(); // Reload all counts and data
+    setIsDeleteAlertOpen(false);
+    setItemToDelete(null);
+  };
+  
+  const exportToCsv = (filename: string, dataToExport: any[]) => {
+    if (!dataToExport || dataToExport.length === 0) {
+      toast({ title: "Tidak Ada Data", description: "Tidak ada data untuk diekspor.", variant: "destructive" });
+      return;
+    }
+
+    const headers = Object.keys(dataToExport[0]);
+    const csvRows = [
+      headers.join(','), // header row
+      ...dataToExport.map(row =>
+        headers.map(fieldName =>
+          JSON.stringify(row[fieldName] === undefined || row[fieldName] === null ? '' : row[fieldName])
+        ).join(',')
+      )
+    ];
+    
+    const csvString = csvRows.join('\r\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({ title: "Ekspor Berhasil", description: `${filename} telah diunduh.` });
+    } else {
+       toast({ title: "Ekspor Gagal", description: "Browser Anda tidak mendukung fitur unduh.", variant: "destructive" });
+    }
+  };
+
 
   if (isLoading) {
     return (
@@ -161,6 +261,7 @@ export default function AdminDashboardPage() {
           <TableHead>Email Ortu</TableHead>
           <TableHead>Tgl Form</TableHead>
           <TableHead>Tes Selesai</TableHead>
+          <TableHead>Aksi</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -184,6 +285,11 @@ export default function AdminDashboardPage() {
             <TableCell>{app.parentEmail}</TableCell>
             <TableCell>{new Date(app.formSubmittedDate).toLocaleDateString('id-ID')}</TableCell>
             <TableCell>{app.quizCompleted ? 'Ya' : 'Belum'}</TableCell>
+            <TableCell>
+              <Button variant="ghost" size="icon" onClick={() => handleDeleteConfirmation(app.id, 'application')}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>
@@ -200,6 +306,7 @@ export default function AdminDashboardPage() {
           <TableHead>Tes Selesai</TableHead>
           <TableHead>Skor Tes</TableHead>
           <TableHead>Status Lulus</TableHead>
+          <TableHead>Aksi</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -218,6 +325,11 @@ export default function AdminDashboardPage() {
               ) : (
                 '-'
               )}
+            </TableCell>
+            <TableCell>
+              <Button variant="ghost" size="icon" onClick={() => handleDeleteConfirmation(app.id, 'application')}>
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
             </TableCell>
           </TableRow>
         ))}
@@ -245,14 +357,15 @@ export default function AdminDashboardPage() {
           onClick={() => handleCardClick(
             "Detail Pengguna Terdaftar",
             detailedRegisteredUsers,
-            'users'
+            'users',
+            'registeredUsers'
           )}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-primary">
               Pengguna Terdaftar
             </CardTitle>
-            <UserPlus className="h-5 w-5 text-muted-foreground" />
+            <Users className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{registeredUserCount}</div>
@@ -264,14 +377,13 @@ export default function AdminDashboardPage() {
 
         <Card 
           className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-          onClick={() => {
-            const applicantsWithTestDone = detailedStudentApplications.filter(app => app.quizCompleted);
-            handleCardClick(
+          onClick={() => handleCardClick(
               "Detail Pendaftar (Tes Selesai)",
-              applicantsWithTestDone,
-              'applications' // This type will now be handled conditionally based on title
-            );
-          }}
+              detailedStudentApplications.filter(app => app.quizCompleted),
+              'applications',
+              'newApplicants'
+            )
+          }
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-primary">
@@ -282,21 +394,20 @@ export default function AdminDashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{newApplicantsCount}</div>
             <p className="text-xs text-muted-foreground">
-              Calon siswa yang mengisi form & menyelesaikan tes.
+              Calon siswa yang isi form & selesaikan tes.
             </p>
           </CardContent>
         </Card>
 
         <Card 
           className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-          onClick={() => {
-            const passed = detailedStudentApplications.filter(app => app.quizCompleted && app.passedQuiz === true);
-            handleCardClick(
+          onClick={() => handleCardClick(
               "Detail Siswa Lulus Tes",
-              passed,
-              'applications'
-            );
-          }}
+              detailedStudentApplications.filter(app => app.quizCompleted && app.passedQuiz === true),
+              'applications',
+              'passedStudents'
+            )
+          }
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-green-600">
@@ -314,14 +425,13 @@ export default function AdminDashboardPage() {
 
         <Card 
           className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
-          onClick={() => {
-            const failed = detailedStudentApplications.filter(app => app.quizCompleted && app.passedQuiz === false);
-            handleCardClick(
+          onClick={() => handleCardClick(
               "Detail Siswa Tidak Lulus Tes",
-              failed,
-              'applications'
-            );
-          }}
+              detailedStudentApplications.filter(app => app.quizCompleted && app.passedQuiz === false),
+              'applications',
+              'failedStudents'
+            )
+          }
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-destructive">
@@ -348,7 +458,7 @@ export default function AdminDashboardPage() {
                   Menampilkan {modalContent.data.length} entri untuk {modalContent.title.toLowerCase()}.
                 </DialogDescription>
               </DialogHeader>
-              <div className="mt-4 overflow-auto flex-grow"> {/* Changed to overflow-auto for horizontal scroll */}
+              <div className="mt-4 overflow-auto flex-grow">
                 {modalContent.data.length > 0 ? (
                   <>
                     {modalContent.type === 'users' && (
@@ -359,6 +469,7 @@ export default function AdminDashboardPage() {
                             <TableHead>Nama Lengkap</TableHead>
                             <TableHead>Tgl. Registrasi</TableHead>
                             <TableHead>Peran</TableHead>
+                            <TableHead>Aksi</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -372,13 +483,18 @@ export default function AdminDashboardPage() {
                                       {user.role}
                                   </span>
                               </TableCell>
+                              <TableCell>
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteConfirmation(user.id, 'user')}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
                       </Table>
                     )}
                     {modalContent.type === 'applications' && (
-                      modalContent.title === "Detail Pendaftar (Tes Selesai)" ?
+                      modalContent.dataTypeKey === "newApplicants" ?
                       renderFullApplicationDetailsTable(modalContent.data as StudentApplication[]) :
                       renderQuizStatusTable(modalContent.data as StudentApplication[])
                     )}
@@ -390,7 +506,15 @@ export default function AdminDashboardPage() {
                   </div>
                 )}
               </div>
-              <DialogFooter className="mt-4">
+              <DialogFooter className="mt-6 sm:justify-between">
+                <Button 
+                  variant="outline" 
+                  onClick={() => exportToCsv(`${modalContent.title.replace(/\s+/g, '_')}_export.csv`, modalContent.data)}
+                  disabled={modalContent.data.length === 0}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Export ke CSV
+                </Button>
                 <DialogClose asChild>
                   <Button variant="outline">Tutup</Button>
                 </DialogClose>
@@ -399,6 +523,26 @@ export default function AdminDashboardPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Konfirmasi Hapus</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat diurungkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setItemToDelete(null)}>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
+
+
+    
