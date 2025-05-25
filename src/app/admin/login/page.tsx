@@ -48,16 +48,20 @@ export default function AdminLoginPage() {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     console.log('Admin login attempt:', data);
 
-    // In a real app, you would verify credentials and redirect to an admin dashboard.
-    // For now, we'll just show a success toast.
     if (data.email === "admin@smpmakarya.sch.id" && data.password === "admin123") {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('isAdminSignedIn', 'true');
+            localStorage.setItem('userRole', 'admin');
+            localStorage.setItem('adminUsername', 'Admin SMP Makarya'); // Or data.email
+            window.dispatchEvent(new CustomEvent('authChange'));
+        }
         toast({
             title: 'Login Berhasil!',
             description: 'Selamat datang Admin. Anda akan diarahkan ke dashboard.',
             variant: 'default',
             className: 'bg-accent text-accent-foreground',
         });
-        // router.push('/admin/dashboard'); // Uncomment when dashboard exists
+        router.push('/admin/dashboard');
         form.reset();
     } else {
         toast({

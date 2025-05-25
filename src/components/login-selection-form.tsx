@@ -65,16 +65,19 @@ export default function LoginSelectionForm() {
 
     if (data.role === 'admin') {
       if (data.username === 'adminmakarya' && data.password === 'makarya123') {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('isAdminSignedIn', 'true');
+          localStorage.setItem('userRole', 'admin'); // Store role
+          localStorage.setItem('adminUsername', data.username); // Store admin username for display
+          window.dispatchEvent(new CustomEvent('authChange'));
+        }
         toast({
           title: 'Admin Login Berhasil!',
-          description: 'Selamat datang, Admin. Anda akan diarahkan.',
+          description: 'Selamat datang, Admin. Anda akan diarahkan ke dashboard.',
           variant: 'default',
           className: 'bg-accent text-accent-foreground',
         });
-        // In a real app, you'd set an admin session/token
-        // For now, we can simulate admin login if needed for other parts, or just show toast
-        // localStorage.setItem('isAdminSignedIn', 'true');
-        // router.push('/admin/dashboard'); // Uncomment when admin dashboard exists
+        router.push('/admin/dashboard');
         form.reset();
       } else {
         toast({
@@ -94,9 +97,9 @@ export default function LoginSelectionForm() {
       if (foundUser) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('isUserSignedIn', 'true');
-          localStorage.setItem('userEmail', foundUser.username); // Using username for display
-          localStorage.setItem('userFullName', foundUser.fullName); // Store full name
-           // Dispatch authChange event for header to update
+          localStorage.setItem('userEmail', foundUser.username); 
+          localStorage.setItem('userFullName', foundUser.fullName); 
+          localStorage.setItem('userRole', 'user'); // Store role
           window.dispatchEvent(new CustomEvent('authChange'));
         }
         toast({
@@ -220,4 +223,3 @@ export default function LoginSelectionForm() {
     </div>
   );
 }
-

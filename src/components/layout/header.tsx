@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { School, Home, UserPlus, MessageCircle, LogIn, LogOut, UserCircle } from 'lucide-react';
+import { School, Home, UserPlus, MessageCircle, LogIn, LogOut, UserCircle, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -17,52 +17,58 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function Header() {
-  const [isUserSignedIn, setIsUserSignedIn] = useState(false);
-  const [userDisplayName, setUserDisplayName] = useState<string | null>(null); // Changed from userEmail to userDisplayName
+  const [isUserSignedIn, setIsUserSignedIn] = useState(false); // Generic signed-in state
+  const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
-    // Function to update auth state
     const updateAuthState = () => {
       if (typeof window !== 'undefined') {
-        const signedIn = localStorage.getItem('isUserSignedIn');
-        // Try to get full name first, fallback to username (userEmail stores username)
-        const fullName = localStorage.getItem('userFullName');
-        const username = localStorage.getItem('userEmail'); // This now stores the username directly
-        
-        setIsUserSignedIn(signedIn === 'true');
-        setUserDisplayName(fullName || username || null);
+        const adminSignedIn = localStorage.getItem('isAdminSignedIn') === 'true';
+        const regularUserSignedIn = localStorage.getItem('isUserSignedIn') === 'true'; // This is for regular users
+        const storedRole = localStorage.getItem('userRole');
+        setUserRole(storedRole);
+
+        if (adminSignedIn && storedRole === 'admin') {
+          setIsUserSignedIn(true);
+          const adminName = localStorage.getItem('adminUsername');
+          setUserDisplayName(adminName || 'Admin Panel');
+        } else if (regularUserSignedIn && storedRole === 'user') {
+          setIsUserSignedIn(true);
+          const fullName = localStorage.getItem('userFullName');
+          const username = localStorage.getItem('userEmail'); // This stores the username
+          setUserDisplayName(fullName || username || 'User');
+        } else {
+          setIsUserSignedIn(false);
+          setUserDisplayName(null);
+          setUserRole(null);
+        }
       }
     };
 
-    // Initial check
     updateAuthState();
-
-    // Listen for storage changes to update auth state across tabs/windows
     window.addEventListener('storage', updateAuthState);
+    window.addEventListener('authChange', updateAuthState);
 
-    // Listen for custom event dispatched after login/logout
-    const handleAuthChange = () => updateAuthState();
-    window.addEventListener('authChange', handleAuthChange);
-
-
-    // Cleanup listeners
     return () => {
       window.removeEventListener('storage', updateAuthState);
-      window.removeEventListener('authChange', handleAuthChange);
+      window.removeEventListener('authChange', updateAuthState);
     };
   }, []);
 
 
   const handleSignOut = () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('isUserSignedIn');
-      localStorage.removeItem('userEmail'); // Stores username
-      localStorage.removeItem('userFullName'); // Stores full name
-      // Dispatch a custom event to notify other components (like this header)
+      localStorage.removeItem('isUserSignedIn'); // For regular users
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userFullName');
+      localStorage.removeItem('isAdminSignedIn'); // For admin
+      localStorage.removeItem('adminUsername');
+      localStorage.removeItem('userRole');
       window.dispatchEvent(new CustomEvent('authChange'));
     }
-    router.push('/'); // Redirect to homepage after sign out
+    router.push('/'); 
   };
 
   return (
@@ -97,18 +103,24 @@ export default function Header() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                {userDisplayName && ( // Changed from userEmail
+                {userDisplayName && (
                   <>
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
                         <p className="text-sm font-medium leading-none">Masuk sebagai</p>
                         <p className="text-xs leading-none text-muted-foreground truncate">
-                          {userDisplayName}
+                          {userDisplayName} ({userRole})
                         </p>
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                   </>
+                )}
+                {userRole === 'admin' && (
+                   <DropdownMenuItem onClick={() => router.push('/admin/dashboard')} className="cursor-pointer">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span>Admin Dashboard</span>
+                  </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={handleSignOut} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
@@ -117,11 +129,10 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-             null // Sign in/up is handled by the main page form
+             null 
           )}
 
-          {/* Tombol Pendaftaran hanya muncul jika user sudah login */}
-          {isUserSignedIn && (
+          {isUserSignedIn && userRole === 'user' && (
             <Button variant="secondary" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
               <Link href="/pendaftaran" className="flex items-center">
                 <UserPlus className="mr-1 sm:mr-2 h-4 w-4" />
