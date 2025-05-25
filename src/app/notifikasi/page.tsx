@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Inbox, BellRing, KeyRound, FileText, Trash2, AlertTriangle, MessageSquareReply } from 'lucide-react';
+import { Inbox, BellRing, KeyRound, FileText, Trash2, AlertTriangle, MessageSquareReply, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -200,5 +200,3 @@ export default function NotificationPage() {
     </div>
   );
 }
-
-    
