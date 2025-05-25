@@ -93,12 +93,14 @@ export default function Header() {
               <span className="text-sm sm:text-base">Kontak</span>
             </Link>
           </Button>
-          <Button variant="ghost" asChild className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground">
-            <Link href="/notifikasi" className="flex items-center">
-              <Mail className="mr-1 sm:mr-2 h-4 w-4" />
-              <span className="text-sm sm:text-base">Notifikasi</span>
-            </Link>
-          </Button>
+          {userRole !== 'admin' && (
+            <Button variant="ghost" asChild className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground">
+              <Link href="/notifikasi" className="flex items-center">
+                <Mail className="mr-1 sm:mr-2 h-4 w-4" />
+                <span className="text-sm sm:text-base">Notifikasi</span>
+              </Link>
+            </Button>
+          )}
 
           {isUserSignedIn ? (
             <DropdownMenu>
