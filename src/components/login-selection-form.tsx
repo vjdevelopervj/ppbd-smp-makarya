@@ -104,7 +104,13 @@ export default function LoginSelectionForm() {
           description: `Selamat datang, ${foundUser.fullName}!`,
         });
         
-        router.push('/'); // Always redirect to main page after user login
+        const searchParams = new URLSearchParams(window.location.search);
+        const redirectUrl = searchParams.get('redirect');
+        if (redirectUrl) {
+          router.push(redirectUrl);
+        } else {
+          router.push('/'); 
+        }
         form.reset();
       } else {
          toast({
@@ -214,3 +220,4 @@ export default function LoginSelectionForm() {
     </div>
   );
 }
+
