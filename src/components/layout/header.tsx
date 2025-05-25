@@ -22,21 +22,44 @@ export default function Header() {
   const router = useRouter();
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const signedIn = localStorage.getItem('isUserSignedIn');
-      const email = localStorage.getItem('userEmail');
-      setIsUserSignedIn(signedIn === 'true');
-      setUserEmail(email);
-    }
+    // Function to update auth state
+    const updateAuthState = () => {
+      if (typeof window !== 'undefined') {
+        const signedIn = localStorage.getItem('isUserSignedIn');
+        const email = localStorage.getItem('userEmail');
+        setIsUserSignedIn(signedIn === 'true');
+        setUserEmail(email);
+      }
+    };
+
+    // Initial check
+    updateAuthState();
+
+    // Listen for storage changes to update auth state across tabs/windows
+    window.addEventListener('storage', updateAuthState);
+
+    // Listen for custom event dispatched after login/logout from login-selection-form
+    // This ensures header updates even if localStorage changes don't trigger 'storage' event immediately
+    const handleAuthChange = () => updateAuthState();
+    window.addEventListener('authChange', handleAuthChange);
+
+
+    // Cleanup listeners
+    return () => {
+      window.removeEventListener('storage', updateAuthState);
+      window.removeEventListener('authChange', handleAuthChange);
+    };
   }, []);
+
 
   const handleSignOut = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('isUserSignedIn');
       localStorage.removeItem('userEmail');
+      // Dispatch a custom event to notify other components (like this header)
+      window.dispatchEvent(new CustomEvent('authChange'));
     }
-    setIsUserSignedIn(false);
-    setUserEmail(null);
+    // State will be updated by the effect listening to 'authChange' or 'storage'
     router.push('/'); // Redirect to homepage after sign out
   };
 
@@ -92,12 +115,9 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button variant="ghost" asChild className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground">
-              <Link href="/signin" className="flex items-center">
-                <LogIn className="mr-1 sm:mr-2 h-4 w-4" />
-                <span className="text-sm sm:text-base">Sign In</span>
-              </Link>
-            </Button>
+            // Sign In button removed as per request to eliminate Google Sign-In path from header
+            // Login is now handled by the form on the main page
+            null 
           )}
 
           <Button variant="secondary" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
@@ -111,4 +131,3 @@ export default function Header() {
     </header>
   );
 }
-

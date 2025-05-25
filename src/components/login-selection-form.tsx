@@ -23,9 +23,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { LogIn, User, Shield, KeyRound, Users } from 'lucide-react';
+import Link from 'next/link';
 
 const loginSchema = z.object({
   role: z.enum(['admin', 'user'], { required_error: 'Peran harus dipilih.' }),
@@ -38,6 +39,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginSelectionForm() {
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<LoginFormData>({
@@ -73,21 +75,21 @@ export default function LoginSelectionForm() {
         });
       }
     } else if (data.role === 'user') {
-      // For user login, let's assume a generic successful login for now
-      // In a real app, you'd verify user credentials against a database
-      // This example uses a simulated success and sets localStorage flags
-      // as per previous user sign-in logic.
       if (typeof window !== 'undefined') {
-        // We don't have a real user database, so for demo, any user/pass could work
-        // Or, you can set a predefined user for testing:
-        // if (data.username === "userdemo" && data.password === "userpass")
         localStorage.setItem('isUserSignedIn', 'true');
-        localStorage.setItem('userEmail', `${data.username}@smpmakarya.sch.id`); // Simulate an email
+        // Simulate an email based on username for display purposes
+        localStorage.setItem('userEmail', `${data.username}@smpmakarya.sch.id`); 
         toast({
           title: 'User Login Berhasil!',
           description: `Selamat datang, ${data.username}!`,
         });
-        router.push('/'); // Redirect to home or user dashboard
+        
+        const redirectUrl = searchParams.get('redirect');
+        if (redirectUrl) {
+          router.push(redirectUrl);
+        } else {
+          router.push('/'); 
+        }
         form.reset();
       } else {
          toast({
@@ -188,7 +190,7 @@ export default function LoginSelectionForm() {
             </form>
           </Form>
           <p className="text-center text-sm text-muted-foreground">
-            Belum punya akun? <a href="/signin" className="text-primary hover:underline">Sign In dengan Google</a> untuk mendaftar sebagai siswa.
+            Belum punya akun siswa? <Link href="/pendaftaran" className="text-primary hover:underline">Registrasi di sini</Link>.
           </p>
         </CardContent>
       </Card>
