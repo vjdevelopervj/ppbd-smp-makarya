@@ -34,6 +34,20 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { sendRegistrationEmail } from '@/app/actions/registrationActions'; // Server Action
 
+// Interface untuk data aplikasi siswa yang akan disimpan di localStorage
+interface StudentApplication {
+  id: string; // Gunakan NISN sebagai ID unik
+  fullName: string;
+  nisn: string;
+  formSubmittedDate: string; // ISO string date
+  quizCompleted: boolean;
+  quizScore?: number;
+  passedQuiz?: boolean;
+}
+
+const STUDENT_APPLICATIONS_KEY = 'smpMakaryaStudentApplications';
+
+
 const registrationFormSchema = z.object({
   fullName: z.string().min(3, { message: 'Nama lengkap minimal 3 karakter.' }),
   nisn: z.string().length(10, { message: 'NISN harus 10 digit.' }).regex(/^\d+$/, { message: "NISN hanya boleh berisi angka." }),
@@ -112,6 +126,37 @@ export default function RegistrationForm() {
     try {
       const result = await sendRegistrationEmail(data);
       if (result.success) {
+        // Save student application data to localStorage
+        if (typeof window !== 'undefined') {
+          const applicationsRaw = localStorage.getItem(STUDENT_APPLICATIONS_KEY);
+          let applications: StudentApplication[] = applicationsRaw ? JSON.parse(applicationsRaw) : [];
+          
+          // Check if application for this NISN already exists, update if so, else add new
+          const existingApplicationIndex = applications.findIndex(app => app.nisn === data.nisn);
+          
+          const newApplicationData: StudentApplication = {
+            id: data.nisn,
+            fullName: data.fullName,
+            nisn: data.nisn,
+            formSubmittedDate: new Date().toISOString(),
+            quizCompleted: false, // Will be updated after quiz
+          };
+
+          if (existingApplicationIndex > -1) {
+            // Preserve quiz data if it exists and only update form-related info
+            applications[existingApplicationIndex] = {
+              ...applications[existingApplicationIndex], // Keep existing quiz data
+              ...newApplicationData, // Update with new form data
+              quizCompleted: applications[existingApplicationIndex].quizCompleted, // Explicitly keep existing quiz status
+              quizScore: applications[existingApplicationIndex].quizScore,
+              passedQuiz: applications[existingApplicationIndex].passedQuiz,
+            };
+          } else {
+            applications.push(newApplicationData);
+          }
+          localStorage.setItem(STUDENT_APPLICATIONS_KEY, JSON.stringify(applications));
+        }
+
         toast({
           title: 'Pendaftaran Diproses!',
           description: 'Data Anda telah kami terima. Anda akan diarahkan ke sesi tes.',
@@ -119,7 +164,8 @@ export default function RegistrationForm() {
           className: 'bg-accent text-accent-foreground',
         });
         form.reset();
-        router.push(`/quiz?name=${encodeURIComponent(data.fullName)}`);
+        // Pass NISN to the quiz page for identification
+        router.push(`/quiz?name=${encodeURIComponent(data.fullName)}&nisn=${encodeURIComponent(data.nisn)}`);
       } else {
         toast({
           title: 'Pendaftaran Gagal',
@@ -467,3 +513,6 @@ export default function RegistrationForm() {
     </Form>
   );
 }
+
+
+    

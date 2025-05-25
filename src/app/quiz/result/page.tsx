@@ -15,6 +15,7 @@ function QuizResultContent() {
   const name = searchParams.get('name') || 'Siswa';
   const score = parseInt(searchParams.get('score') || '0', 10);
   const totalQuestions = parseInt(searchParams.get('total') || '1', 10);
+  // const nisn = searchParams.get('nisn'); // NISN is available if needed for display or other logic
 
   const percentageScore = totalQuestions > 0 ? (score / totalQuestions) * 100 : 0;
   const isPassed = percentageScore >= PASSING_PERCENTAGE;
@@ -67,3 +68,5 @@ export default function QuizResultPage() {
     </Suspense>
   );
 }
+
+    

@@ -8,9 +8,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { quizSubjects, getTotalQuestions, type Question } from '@/lib/quiz-questions';
-import { AlertCircle, ArrowLeft, ArrowRight, CheckCircle, Send, Clock } from 'lucide-react';
+import { quizSubjects, getTotalQuestions, type Question, PASSING_PERCENTAGE } from '@/lib/quiz-questions';
+import { AlertCircle, ArrowLeft, ArrowRight, Send, Clock } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+// Interface untuk data aplikasi siswa yang akan disimpan di localStorage
+interface StudentApplication {
+  id: string; // Gunakan NISN sebagai ID unik
+  fullName: string;
+  nisn: string;
+  formSubmittedDate: string;
+  quizCompleted: boolean;
+  quizScore?: number;
+  passedQuiz?: boolean;
+}
+const STUDENT_APPLICATIONS_KEY = 'smpMakaryaStudentApplications';
 
 type AnswersState = Record<string, string>;
 
@@ -18,6 +30,7 @@ function QuizComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const studentName = searchParams.get('name') || 'Calon Siswa';
+  const studentNisn = searchParams.get('nisn'); // Ambil NISN dari query params
 
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -41,8 +54,8 @@ function QuizComponent() {
 
   // Memoized function for submitting the quiz
   const submitQuizLogic = useCallback(() => {
-    setTimerActive(false); // Stop the timer
-    setSubmittedByTimer(true); // Mark as submitted
+    setTimerActive(false); 
+    setSubmittedByTimer(true); 
 
     let score = 0;
     quizSubjects.forEach(subject => {
@@ -52,8 +65,42 @@ function QuizComponent() {
         }
       });
     });
-    router.push(`/quiz/result?name=${encodeURIComponent(studentName)}&score=${score}&total=${totalQuestions}`);
-  }, [answers, studentName, totalQuestions, router, quizSubjects]);
+
+    // Update localStorage for student application
+    if (typeof window !== 'undefined' && studentNisn) {
+      const applicationsRaw = localStorage.getItem(STUDENT_APPLICATIONS_KEY);
+      let applications: StudentApplication[] = applicationsRaw ? JSON.parse(applicationsRaw) : [];
+      
+      const applicationIndex = applications.findIndex(app => app.nisn === studentNisn);
+      if (applicationIndex > -1) {
+        applications[applicationIndex] = {
+          ...applications[applicationIndex],
+          quizCompleted: true,
+          quizScore: score,
+          passedQuiz: (score / totalQuestions) * 100 >= PASSING_PERCENTAGE,
+        };
+        localStorage.setItem(STUDENT_APPLICATIONS_KEY, JSON.stringify(applications));
+      } else {
+        console.warn(`Aplikasi untuk NISN ${studentNisn} tidak ditemukan di localStorage saat submit kuis.`);
+         // Optionally create a new entry if not found, though ideally it should exist from registration
+         const newApplicationEntry: StudentApplication = {
+          id: studentNisn,
+          fullName: studentName, // This might be just the name from query, ensure it's the full name
+          nisn: studentNisn,
+          formSubmittedDate: new Date().toISOString(), // Or fetch from existing data if possible
+          quizCompleted: true,
+          quizScore: score,
+          passedQuiz: (score / totalQuestions) * 100 >= PASSING_PERCENTAGE,
+        };
+        applications.push(newApplicationEntry);
+        localStorage.setItem(STUDENT_APPLICATIONS_KEY, JSON.stringify(applications));
+      }
+    } else if (!studentNisn) {
+        console.error("NISN siswa tidak tersedia untuk memperbarui data aplikasi kuis.");
+    }
+
+    router.push(`/quiz/result?name=${encodeURIComponent(studentName)}&score=${score}&total=${totalQuestions}&nisn=${studentNisn || ''}`);
+  }, [answers, studentName, studentNisn, totalQuestions, router, quizSubjects]);
 
 
   // Effect to start the timer when quiz begins
@@ -72,7 +119,6 @@ function QuizComponent() {
         setTimeRemaining((prevTime) => (prevTime > 0 ? prevTime - 1 : 0));
       }, 1000);
     } else if (timerActive && timeRemaining === 0 && !submittedByTimer) {
-      // Timer reached zero, submission will be handled by the next effect
       setTimerActive(false); 
     }
 
@@ -84,12 +130,18 @@ function QuizComponent() {
   // Effect to handle submission when time is up
   useEffect(() => {
     if (quizStarted && timeRemaining === 0 && !submittedByTimer && timerActive) {
-      // This condition indicates the timer itself ran out.
-      // The `timerActive` check here ensures this isn't triggered if timer was never started or already stopped.
       console.log("Time's up! Forcing quiz submission.");
       submitQuizLogic();
     }
   }, [quizStarted, timeRemaining, submittedByTimer, timerActive, submitQuizLogic]);
+
+   useEffect(() => {
+    if (!studentNisn && quizStarted) {
+      console.error("NISN siswa tidak ditemukan di halaman kuis. Ini diperlukan untuk menyimpan hasil.");
+      // Optionally, redirect or show an error to the user
+      // For now, quiz can proceed but data saving might fail or be incomplete.
+    }
+  }, [studentNisn, quizStarted]);
 
 
   if (!quizStarted) {
@@ -154,7 +206,7 @@ function QuizComponent() {
       return;
     }
 
-    if(questionsAnswered < totalQuestions && !answers[currentQuestion.id]){
+    if(questionsAnswered < totalQuestions && !answers[currentQuestion.id] && !isLastQuestionOverall){
        setShowWarning(true);
        return;
     }
@@ -186,7 +238,7 @@ function QuizComponent() {
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-bold text-primary">Tes Potensi Akademik</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Siswa: {decodeURIComponent(studentName)}
+            Siswa: {decodeURIComponent(studentName)} (NISN: {studentNisn || 'Tidak tersedia'})
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -241,7 +293,7 @@ function QuizComponent() {
             <Button
               variant="outline"
               onClick={goToPreviousQuestion}
-              disabled={currentSubjectIndex === 0 && currentQuestionIndex === 0 || submittedByTimer}
+              disabled={(currentSubjectIndex === 0 && currentQuestionIndex === 0) || submittedByTimer}
             >
               <ArrowLeft className="mr-2 h-4 w-4" /> Kembali
             </Button>
@@ -270,3 +322,5 @@ export default function QuizPage() {
     </Suspense>
   );
 }
+
+    

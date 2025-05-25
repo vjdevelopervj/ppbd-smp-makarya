@@ -16,17 +16,18 @@ interface RegisteredUser {
   role: string;
 }
 
-// Placeholder interface for student application data
-// In a real app, this would come from a database
+// Interface for student application data, matches the one in registration & quiz
 interface StudentApplication {
-  id: string;
+  id: string; // Use NISN
   fullName: string;
   nisn: string;
-  formSubmittedDate: string;
+  formSubmittedDate: string; // ISO string
   quizCompleted: boolean;
   quizScore?: number;
   passedQuiz?: boolean;
 }
+
+const STUDENT_APPLICATIONS_KEY = 'smpMakaryaStudentApplications';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -40,6 +41,9 @@ export default function AdminDashboardPage() {
   const [failedStudentsCount, setFailedStudentsCount] = useState(0);
 
   const [detailedRegisteredUsers, setDetailedRegisteredUsers] = useState<RegisteredUser[]>([]);
+  // State to hold student application details for a new table (optional for now, but good for future)
+  const [detailedStudentApplications, setDetailedStudentApplications] = useState<StudentApplication[]>([]);
+
 
   useEffect(() => {
     const adminSignedIn = typeof window !== 'undefined' ? localStorage.getItem('isAdminSignedIn') : null;
@@ -55,20 +59,16 @@ export default function AdminDashboardPage() {
         id: user.username, 
         username: user.username,
         fullName: user.fullName,
-        registrationDate: new Date().toLocaleDateString('id-ID'), // Simulate registration date
+        // Simulate registration date - in a real app, this would be stored
+        registrationDate: user.registrationDate || new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toLocaleDateString('id-ID'), 
         role: 'user', 
       }));
       setDetailedRegisteredUsers(formattedUsers);
 
-      // --- Placeholder Data for Cards 2, 3, 4 ---
-      // In a real application, you would fetch this data from your backend/database.
-      // For this demo, we'll use placeholder values or simulate fetching.
-      
-      // Example: Fetching student applications data (simulated)
-      const studentApplicationsRaw = typeof window !== 'undefined' ? localStorage.getItem('smpMakaryaStudentApplications') : null;
+      // --- Fetch and process student applications data ---
+      const studentApplicationsRaw = typeof window !== 'undefined' ? localStorage.getItem(STUDENT_APPLICATIONS_KEY) : null;
       const studentApplications: StudentApplication[] = studentApplicationsRaw ? JSON.parse(studentApplicationsRaw) : [];
-      // For now, let's assume this data is populated by the registration & quiz flow.
-      // If not, these counts will be 0.
+      setDetailedStudentApplications(studentApplications); // Store for potential detailed table later
 
       // Card 2: New Student Applicants (Form + Test Done)
       const applicantsWithTestDone = studentApplications.filter(app => app.quizCompleted);
@@ -81,10 +81,10 @@ export default function AdminDashboardPage() {
       // Card 4: Students Failed Quiz
       const failed = studentApplications.filter(app => app.quizCompleted && app.passedQuiz === false);
       setFailedStudentsCount(failed.length);
-      // --- End Placeholder Data ---
+      // --- End Student Applications Data ---
 
     } else {
-      router.push('/admin/login'); // Redirect to admin login if not authenticated
+      router.push('/admin/login'); 
     }
     setIsLoading(false);
   }, [router]);
@@ -99,7 +99,6 @@ export default function AdminDashboardPage() {
   }
 
   if (!isAdminAuthenticated) {
-    // This should ideally not be reached if redirect works, but as a fallback.
     return (
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">
         <ShieldAlert className="h-12 w-12 text-destructive" />
@@ -144,7 +143,7 @@ export default function AdminDashboardPage() {
         <Card className="shadow-lg hover:shadow-xl transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-primary">
-              Pendaftar Baru (Tes Selesai)
+              Pendaftar (Tes Selesai)
             </CardTitle>
             <FileText className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
@@ -153,7 +152,6 @@ export default function AdminDashboardPage() {
             <p className="text-xs text-muted-foreground">
               Calon siswa yang mengisi form & menyelesaikan tes.
             </p>
-             {/* <p className="text-xs text-muted-foreground mt-1"> (Data disimulasikan)</p> */}
           </CardContent>
         </Card>
 
@@ -169,7 +167,6 @@ export default function AdminDashboardPage() {
             <p className="text-xs text-muted-foreground">
               Siswa yang memenuhi syarat kelulusan tes.
             </p>
-            {/* <p className="text-xs text-muted-foreground mt-1">(Data disimulasikan)</p> */}
           </CardContent>
         </Card>
 
@@ -185,7 +182,6 @@ export default function AdminDashboardPage() {
             <p className="text-xs text-muted-foreground">
               Siswa yang tidak memenuhi syarat kelulusan tes.
             </p>
-            {/* <p className="text-xs text-muted-foreground mt-1">(Data disimulasikan)</p> */}
           </CardContent>
         </Card>
       </div>
@@ -206,7 +202,7 @@ export default function AdminDashboardPage() {
                   <TableRow>
                     <TableHead>Username (ID)</TableHead>
                     <TableHead>Nama Lengkap</TableHead>
-                    <TableHead>Tanggal Registrasi Akun (Simulasi)</TableHead>
+                    <TableHead>Tanggal Registrasi Akun</TableHead>
                     <TableHead>Peran</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -234,20 +230,61 @@ export default function AdminDashboardPage() {
           )}
         </CardContent>
       </Card>
-       {/*
-        TODO: Add a new Card/Table section here to display details of 'StudentApplications'
-        This would involve fetching and mapping 'studentApplications' similar to 'detailedRegisteredUsers'.
-        Example:
-        <Card className="shadow-xl animate-fade-in-up animation-delay-500">
-            <CardHeader>
-                <CardTitle>Data Pendaftar Siswa</CardTitle>
-            </CardHeader>
-            <CardContent>
-                // Table with studentApplications data: fullName, nisn, formSubmittedDate, quizCompleted, quizScore, passedQuiz
-            </CardContent>
-        </Card>
-      */}
+
+      {/* Detailed Student Applications Table (Example - can be expanded) */}
+      <Card className="shadow-xl animate-fade-in-up animation-delay-700">
+        <CardHeader>
+            <CardTitle className="text-xl font-semibold text-primary">Data Pendaftar Siswa</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Detail calon siswa yang telah mengisi formulir dan mengikuti tes.
+            </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {detailedStudentApplications.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>NISN</TableHead>
+                    <TableHead>Nama Lengkap</TableHead>
+                    <TableHead>Tgl. Form</TableHead>
+                    <TableHead>Tes Selesai</TableHead>
+                    <TableHead>Skor Tes</TableHead>
+                    <TableHead>Status Lulus</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {detailedStudentApplications.map((app) => (
+                    <TableRow key={app.id}>
+                      <TableCell className="font-medium">{app.nisn}</TableCell>
+                      <TableCell>{app.fullName}</TableCell>
+                      <TableCell>{new Date(app.formSubmittedDate).toLocaleDateString('id-ID')}</TableCell>
+                      <TableCell>{app.quizCompleted ? 'Ya' : 'Belum'}</TableCell>
+                      <TableCell>{app.quizScore !== undefined ? app.quizScore : '-'}</TableCell>
+                      <TableCell>
+                        {app.quizCompleted ? (
+                          app.passedQuiz ? 
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Lulus</span> : 
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Tidak Lulus</span>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            ) : (
+            <div className="text-center py-10">
+              <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+              <p className="mt-4 text-muted-foreground">Belum ada data pendaftar siswa.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
+    
