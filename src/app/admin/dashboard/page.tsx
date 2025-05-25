@@ -9,6 +9,7 @@ import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, U
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label'; // Added import for Label
 import {
   Dialog,
   DialogContent,
@@ -747,3 +748,5 @@ export default function AdminDashboardPage() {
 }
 
     
+
+      
