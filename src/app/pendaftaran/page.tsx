@@ -39,7 +39,6 @@ export default function RegistrationPage() {
   if (!isAuthenticated) {
     // This content will be briefly shown if redirect is slow or fails.
     // Ideally, user is redirected before this point if not authenticated.
-    // We can return null or a minimal loader.
     return (
         <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)] py-8">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />

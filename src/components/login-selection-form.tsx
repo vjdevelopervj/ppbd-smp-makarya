@@ -24,7 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LogIn, User, Shield, KeyRound, Users } from 'lucide-react';
 import Link from 'next/link';
 
@@ -36,11 +36,14 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
+const REGISTERED_USERS_KEY = 'smpMakaryaRegisteredUsers';
+
 export default function LoginSelectionForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<string | undefined>();
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -51,21 +54,28 @@ export default function LoginSelectionForm() {
     },
   });
 
+  const roleValue = form.watch('role');
+
+  useEffect(() => {
+    setSelectedRole(roleValue);
+  }, [roleValue]);
+
   async function onSubmit(data: LoginFormData) {
     setIsSubmitting(true);
-    // Simulate API call for login
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    console.log('Login attempt:', data);
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API delay
 
     if (data.role === 'admin') {
       if (data.username === 'adminmakarya' && data.password === 'makarya123') {
         toast({
           title: 'Admin Login Berhasil!',
-          description: 'Selamat datang, Admin. Anda akan diarahkan ke dashboard.',
+          description: 'Selamat datang, Admin. Anda akan diarahkan.',
           variant: 'default',
           className: 'bg-accent text-accent-foreground',
         });
-        // router.push('/admin/dashboard'); // Redirect to admin dashboard when it exists
+        // In a real app, you'd set an admin session/token
+        // For now, we can simulate admin login if needed for other parts, or just show toast
+        // localStorage.setItem('isAdminSignedIn', 'true');
+        // router.push('/admin/dashboard'); // Uncomment when admin dashboard exists
         form.reset();
       } else {
         toast({
@@ -75,20 +85,31 @@ export default function LoginSelectionForm() {
         });
       }
     } else if (data.role === 'user') {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('isUserSignedIn', 'true');
-        // Simulate an email based on username for display purposes
-        localStorage.setItem('userEmail', `${data.username}@smpmakarya.sch.id`); 
+      const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
+      const storedUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+      
+      const foundUser = storedUsers.find(
+        (user: any) => user.username === data.username && user.password === data.password
+      );
+
+      if (foundUser) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('isUserSignedIn', 'true');
+          localStorage.setItem('userEmail', foundUser.username); // Using username for display, as header splits by @
+          localStorage.setItem('userFullName', foundUser.fullName); // Store full name
+           // Dispatch authChange event for header to update
+          window.dispatchEvent(new CustomEvent('authChange'));
+        }
         toast({
           title: 'User Login Berhasil!',
-          description: `Selamat datang, ${data.username}!`,
+          description: `Selamat datang, ${foundUser.fullName}!`,
         });
         
         const redirectUrl = searchParams.get('redirect');
         if (redirectUrl) {
           router.push(redirectUrl);
         } else {
-          router.push('/'); 
+          router.push('/'); // Or a user dashboard if it exists
         }
         form.reset();
       } else {
@@ -189,9 +210,11 @@ export default function LoginSelectionForm() {
               </Button>
             </form>
           </Form>
-          <p className="text-center text-sm text-muted-foreground">
-            Belum punya akun siswa? <Link href="/pendaftaran" className="text-primary hover:underline">Registrasi di sini</Link>.
-          </p>
+          {selectedRole === 'user' && (
+            <p className="text-center text-sm text-muted-foreground">
+              Belum punya akun? <Link href="/registrasi-akun" className="text-primary hover:underline font-medium">Buat Akun User</Link>.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

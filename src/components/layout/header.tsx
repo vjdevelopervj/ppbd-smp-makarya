@@ -18,7 +18,7 @@ import {
 
 export default function Header() {
   const [isUserSignedIn, setIsUserSignedIn] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userDisplayName, setUserDisplayName] = useState<string | null>(null); // Changed from userEmail to userDisplayName
   const router = useRouter();
 
   useEffect(() => {
@@ -26,9 +26,12 @@ export default function Header() {
     const updateAuthState = () => {
       if (typeof window !== 'undefined') {
         const signedIn = localStorage.getItem('isUserSignedIn');
-        const email = localStorage.getItem('userEmail');
+        // Try to get full name first, fallback to username (userEmail stores username)
+        const fullName = localStorage.getItem('userFullName');
+        const username = localStorage.getItem('userEmail'); // This now stores the username directly
+        
         setIsUserSignedIn(signedIn === 'true');
-        setUserEmail(email);
+        setUserDisplayName(fullName || username || null);
       }
     };
 
@@ -38,8 +41,7 @@ export default function Header() {
     // Listen for storage changes to update auth state across tabs/windows
     window.addEventListener('storage', updateAuthState);
 
-    // Listen for custom event dispatched after login/logout from login-selection-form
-    // This ensures header updates even if localStorage changes don't trigger 'storage' event immediately
+    // Listen for custom event dispatched after login/logout
     const handleAuthChange = () => updateAuthState();
     window.addEventListener('authChange', handleAuthChange);
 
@@ -55,11 +57,11 @@ export default function Header() {
   const handleSignOut = () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('isUserSignedIn');
-      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userEmail'); // Stores username
+      localStorage.removeItem('userFullName'); // Stores full name
       // Dispatch a custom event to notify other components (like this header)
       window.dispatchEvent(new CustomEvent('authChange'));
     }
-    // State will be updated by the effect listening to 'authChange' or 'storage'
     router.push('/'); // Redirect to homepage after sign out
   };
 
@@ -91,17 +93,17 @@ export default function Header() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground flex items-center">
                   <UserCircle className="mr-1 sm:mr-2 h-5 w-5" />
-                  <span className="text-sm sm:text-base hidden md:inline">{userEmail ? userEmail.split('@')[0] : 'Akun'}</span>
+                  <span className="text-sm sm:text-base hidden md:inline truncate max-w-[100px]">{userDisplayName || 'Akun'}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                {userEmail && (
+                {userDisplayName && ( // Changed from userEmail
                   <>
                     <DropdownMenuLabel className="font-normal">
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">Signed in as</p>
+                        <p className="text-sm font-medium leading-none">Masuk sebagai</p>
                         <p className="text-xs leading-none text-muted-foreground truncate">
-                          {userEmail}
+                          {userDisplayName}
                         </p>
                       </div>
                     </DropdownMenuLabel>
@@ -115,17 +117,18 @@ export default function Header() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            // Sign In button removed as per request to eliminate Google Sign-In path from header
-            // Login is now handled by the form on the main page
-            null 
+             null // Sign in/up is handled by the main page form
           )}
 
-          <Button variant="secondary" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
-            <Link href="/pendaftaran" className="flex items-center">
-              <UserPlus className="mr-1 sm:mr-2 h-4 w-4" />
-              <span className="text-sm sm:text-base">Pendaftaran</span>
-            </Link>
-          </Button>
+          {/* Tombol Pendaftaran hanya muncul jika user sudah login */}
+          {isUserSignedIn && (
+            <Button variant="secondary" asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
+              <Link href="/pendaftaran" className="flex items-center">
+                <UserPlus className="mr-1 sm:mr-2 h-4 w-4" />
+                <span className="text-sm sm:text-base">Pendaftaran Siswa</span>
+              </Link>
+            </Button>
+          )}
         </nav>
       </div>
     </header>
