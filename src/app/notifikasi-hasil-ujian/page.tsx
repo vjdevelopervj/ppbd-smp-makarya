@@ -1,6 +1,10 @@
 
 'use client';
 
+// This file is no longer directly used as notifications are centralized.
+// It can be deleted. Keeping it for now just in case, but its functionality
+// has been moved to the main /notifikasi page.
+
 import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -50,9 +54,9 @@ function ExamResultNotificationContent() {
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent mb-4">
             <MailOpen className="h-10 w-10 text-accent-foreground" />
           </div>
-          <CardTitle className="text-3xl font-bold text-primary">Notifikasi Hasil Ujian</CardTitle>
+          <CardTitle className="text-3xl font-bold text-primary">Notifikasi Hasil Ujian (Arsip)</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Pesan ini untuk {decodeURIComponent(name)} (NISN: {nisn}).
+            Pesan ini untuk {decodeURIComponent(name)} (NISN: {nisn}). (Halaman ini diarsipkan, silakan cek Pusat Notifikasi)
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -75,10 +79,10 @@ function ExamResultNotificationContent() {
           </div>
           
           <p className="text-sm text-muted-foreground text-center">
-            Ini adalah notifikasi hasil tes Anda. Pengumuman resmi dan informasi lebih lanjut akan disampaikan oleh pihak sekolah SMP Makarya melalui kontak yang terdaftar.
+            Ini adalah notifikasi hasil tes Anda. Pengumuman resmi dan informasi lebih lanjut akan disampaikan oleh pihak sekolah SMP Makarya melalui kontak yang terdaftar atau Pusat Notifikasi.
           </p>
-          <Button onClick={() => router.push('/')} className="w-full mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
-            <Home className="mr-2 h-4 w-4" /> Kembali ke Halaman Utama
+          <Button onClick={() => router.push('/notifikasi')} className="w-full mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
+            <MailOpen className="mr-2 h-4 w-4" /> Cek Pusat Notifikasi
           </Button>
         </CardContent>
       </Card>
@@ -86,7 +90,7 @@ function ExamResultNotificationContent() {
   );
 }
 
-export default function ExamResultNotificationPage() {
+export default function ExamResultNotificationPageArchived() {
   return (
     <Suspense fallback={
       <div className="flex flex-col justify-center items-center min-h-[calc(100vh-200px)]">

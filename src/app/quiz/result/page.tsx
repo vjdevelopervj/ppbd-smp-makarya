@@ -8,6 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle, Home, MailOpen, Loader2 } from 'lucide-react';
 import { PASSING_PERCENTAGE } from '@/lib/quiz-questions';
+import type { UserNotification } from '@/app/notifikasi/page'; // Import the type
+
+const USER_NOTIFICATIONS_BASE_KEY = 'smpMakaryaUserNotifications_';
+
 
 function QuizResultContent() {
   const searchParams = useSearchParams();
@@ -44,7 +48,41 @@ function QuizResultContent() {
   const isPassed = percentageScore >= PASSING_PERCENTAGE;
 
   const handleViewNotification = () => {
-    router.push(`/notifikasi-hasil-ujian?name=${encodeURIComponent(name)}&score=${score}&total=${totalQuestions}&nisn=${encodeURIComponent(nisn)}`);
+    // Store notification in localStorage
+    if (typeof window !== 'undefined') {
+      const loggedInUserEmail = localStorage.getItem('userEmail');
+      if (loggedInUserEmail) {
+        const notificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${loggedInUserEmail}`;
+        let existingNotifications: UserNotification[] = [];
+        const storedNotificationsRaw = localStorage.getItem(notificationsKey);
+        if (storedNotificationsRaw) {
+          try {
+            existingNotifications = JSON.parse(storedNotificationsRaw);
+          } catch (e) {
+            console.error("Error parsing existing notifications:", e);
+          }
+        }
+
+        const newNotification: UserNotification = {
+          id: new Date().toISOString() + Math.random().toString(36).substring(2, 15), // More unique ID
+          type: 'examResult',
+          title: 'Hasil Tes Potensi Akademik Anda',
+          timestamp: new Date().toISOString(),
+          payload: {
+            studentName: decodeURIComponent(name),
+            nisn: nisn,
+            score: score,
+            totalQuestions: totalQuestions,
+            isPassed: isPassed,
+          },
+          isRead: false,
+        };
+
+        existingNotifications.push(newNotification);
+        localStorage.setItem(notificationsKey, JSON.stringify(existingNotifications));
+      }
+    }
+    router.push(`/notifikasi`);
   };
 
   return (
@@ -77,14 +115,14 @@ function QuizResultContent() {
           )}
 
           <p className="text-sm text-muted-foreground">
-            Pastikan untuk selalu memeriksa email dan pesan Anda untuk pengumuman resmi dari SMP Makarya.
+            Hasil tes ini juga telah dikirim ke pusat notifikasi Anda.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button onClick={() => router.push('/')} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               <Home className="mr-2 h-4 w-4" /> Kembali ke Halaman Utama
             </Button>
             <Button onClick={handleViewNotification} variant="outline" className="text-accent border-accent hover:bg-accent/10">
-              <MailOpen className="mr-2 h-4 w-4" /> Lihat Notifikasi Hasil Ujian
+              <MailOpen className="mr-2 h-4 w-4" /> Lihat di Pusat Notifikasi
             </Button>
           </div>
         </CardContent>
@@ -105,3 +143,4 @@ export default function QuizResultPage() {
     </Suspense>
   );
 }
+

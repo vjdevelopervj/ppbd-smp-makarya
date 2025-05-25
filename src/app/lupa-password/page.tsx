@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { KeyRound, User, Send, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import type { UserNotification } from '@/app/notifikasi/page'; // Import the type
 
 const forgotPasswordSchema = z.object({
   username: z.string().min(3, { message: 'Username minimal 3 karakter.' }),
@@ -28,6 +29,8 @@ const forgotPasswordSchema = z.object({
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
 const REGISTERED_USERS_KEY = 'smpMakaryaRegisteredUsers';
+const USER_NOTIFICATIONS_BASE_KEY = 'smpMakaryaUserNotifications_';
+
 
 export default function ForgotPasswordPage() {
   const { toast } = useToast();
@@ -43,19 +46,43 @@ export default function ForgotPasswordPage() {
 
   async function onSubmit(data: ForgotPasswordFormData) {
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1000)); 
 
     const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
     const storedUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
-
     const existingUser = storedUsers.find((user: any) => user.username === data.username);
 
     if (existingUser) {
+      // Create and store notification
+      if (typeof window !== 'undefined') {
+        const notificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${data.username}`;
+        let userNotifications: UserNotification[] = [];
+        const storedNotificationsRaw = localStorage.getItem(notificationsKey);
+        if (storedNotificationsRaw) {
+          try {
+            userNotifications = JSON.parse(storedNotificationsRaw);
+          } catch (e) { console.error("Error parsing notifications for forgot password:", e); }
+        }
+        
+        const resetLink = `/atur-password-baru?username=${encodeURIComponent(data.username)}`;
+        const newNotification: UserNotification = {
+          id: new Date().toISOString() + Math.random().toString(36).substring(2, 15),
+          type: 'passwordResetRequest',
+          title: 'Permintaan Atur Ulang Password',
+          message: `Anda telah meminta untuk mengatur ulang password. Silakan klik link untuk melanjutkan.`,
+          timestamp: new Date().toISOString(),
+          payload: { resetLink: resetLink },
+          isRead: false,
+        };
+        userNotifications.push(newNotification);
+        localStorage.setItem(notificationsKey, JSON.stringify(userNotifications));
+      }
+
       toast({
         title: 'Username Ditemukan',
-        description: 'Anda akan diarahkan untuk membuat password baru.',
+        description: 'Link untuk mengatur password baru telah dikirim ke notifikasi Anda dan Anda akan diarahkan.',
         className: 'bg-accent text-accent-foreground',
-        duration: 3000,
+        duration: 4000,
       });
       router.push(`/atur-password-baru?username=${encodeURIComponent(data.username)}`);
     } else {
@@ -67,8 +94,6 @@ export default function ForgotPasswordPage() {
       });
     }
     setIsSubmitting(false);
-    // Form is not reset here, so user can see what they typed if there was an error.
-    // It will be reset if they navigate away or successfully get redirected.
   }
 
   return (
@@ -113,7 +138,7 @@ export default function ForgotPasswordPage() {
             </form>
           </Form>
           <div className="text-center">
-            <Button variant="link" asChild onClick={() => router.back()} className="text-primary hover:underline">
+            <Button variant="link" asChild onClick={() => router.push('/')} className="text-primary hover:underline">
                 <Link href="#"><ArrowLeft className="mr-2 h-4 w-4" /> Kembali ke Login</Link>
             </Button>
           </div>
