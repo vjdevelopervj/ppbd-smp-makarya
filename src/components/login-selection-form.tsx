@@ -192,9 +192,17 @@ export default function LoginSelectionForm() {
                 name="password"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="flex items-center">
-                      <KeyRound className="mr-2 h-5 w-5 text-primary" /> Password
-                    </FormLabel>
+                    <div className="flex justify-between items-center">
+                      <FormLabel className="flex items-center">
+                        <KeyRound className="mr-2 h-5 w-5 text-primary" /> Password
+                      </FormLabel>
+                      {selectedRole === 'user' && (
+                        <Link href="/lupa-password" 
+                              className="text-xs text-primary hover:underline font-medium">
+                          Lupa Password?
+                        </Link>
+                      )}
+                    </div>
                     <FormControl>
                       <Input type="password" placeholder="********" {...field} />
                     </FormControl>
