@@ -159,7 +159,7 @@ export default function AdminDashboardPage() {
 
     if (itemToDelete.type === 'user') {
       const updatedUsers = detailedRegisteredUsers.filter(user => user.id !== itemToDelete.id);
-      localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedUsers.map(u => ({username: u.username, fullName: u.fullName, password: '***'})))); // Re-save without sensitive data if necessary
+      localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedUsers.map(u => ({username: u.username, fullName: u.fullName, password: '***'})))); 
       setDetailedRegisteredUsers(updatedUsers);
       if (modalContent?.dataTypeKey === 'registeredUsers') {
         setModalContent(prev => prev ? {...prev, data: updatedUsers} : null);
@@ -169,17 +169,21 @@ export default function AdminDashboardPage() {
       const updatedApplications = detailedStudentApplications.filter(app => app.id !== itemToDelete.id);
       localStorage.setItem(STUDENT_APPLICATIONS_KEY, JSON.stringify(updatedApplications));
       setDetailedStudentApplications(updatedApplications);
-      // Refresh modal data if it's showing applications
+      
       if (modalContent?.type === 'applications') {
-          let currentModalData = [];
-          if (modalContent.dataTypeKey === 'newApplicants') currentModalData = updatedApplications.filter(app => app.quizCompleted);
-          else if (modalContent.dataTypeKey === 'passedStudents') currentModalData = updatedApplications.filter(app => app.quizCompleted && app.passedQuiz === true);
-          else if (modalContent.dataTypeKey === 'failedStudents') currentModalData = updatedApplications.filter(app => app.quizCompleted && app.passedQuiz === false);
+          let currentModalData: StudentApplication[] = [];
+          if (modalContent.dataTypeKey === 'newApplicants') {
+            currentModalData = updatedApplications.filter(app => app.quizCompleted);
+          } else if (modalContent.dataTypeKey === 'passedStudents') {
+            currentModalData = updatedApplications.filter(app => app.quizCompleted && app.passedQuiz === true);
+          } else if (modalContent.dataTypeKey === 'failedStudents') {
+            currentModalData = updatedApplications.filter(app => app.quizCompleted && app.passedQuiz === false);
+          }
           setModalContent(prev => prev ? {...prev, data: currentModalData} : null);
       }
       toast({ title: "Aplikasi Dihapus", description: `Aplikasi siswa dengan NISN ${itemToDelete.id} telah dihapus.` });
     }
-    loadData(); // Reload all counts and data
+    loadData(); 
     setIsDeleteAlertOpen(false);
     setItemToDelete(null);
   };
@@ -192,11 +196,17 @@ export default function AdminDashboardPage() {
 
     const headers = Object.keys(dataToExport[0]);
     const csvRows = [
-      headers.join(','), // header row
+      headers.join(','), 
       ...dataToExport.map(row =>
-        headers.map(fieldName =>
-          JSON.stringify(row[fieldName] === undefined || row[fieldName] === null ? '' : row[fieldName])
-        ).join(',')
+        headers.map(fieldName => {
+          let value = row[fieldName];
+          if (value === undefined || value === null) {
+            value = '';
+          } else if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
+            value = `"${value.replace(/"/g, '""')}"`;
+          }
+          return value;
+        }).join(',')
       )
     ];
     
@@ -494,9 +504,11 @@ export default function AdminDashboardPage() {
                       </Table>
                     )}
                     {modalContent.type === 'applications' && (
-                      modalContent.dataTypeKey === "newApplicants" ?
-                      renderFullApplicationDetailsTable(modalContent.data as StudentApplication[]) :
-                      renderQuizStatusTable(modalContent.data as StudentApplication[])
+                      (modalContent.dataTypeKey === "newApplicants" || modalContent.dataTypeKey === "passedStudents" || modalContent.dataTypeKey === "failedStudents") ?
+                      ( (modalContent.dataTypeKey === "newApplicants") ?
+                        renderFullApplicationDetailsTable(modalContent.data as StudentApplication[]) :
+                        renderQuizStatusTable(modalContent.data as StudentApplication[])
+                      ) : null
                     )}
                   </>
                 ) : (
@@ -513,7 +525,7 @@ export default function AdminDashboardPage() {
                   disabled={modalContent.data.length === 0}
                 >
                   <Download className="mr-2 h-4 w-4" />
-                  Export ke CSV
+                  Export untuk Excel (CSV)
                 </Button>
                 <DialogClose asChild>
                   <Button variant="outline">Tutup</Button>
@@ -543,6 +555,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-
-    
