@@ -23,7 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { LogIn, User, Shield, KeyRound, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -41,7 +41,6 @@ const REGISTERED_USERS_KEY = 'smpMakaryaRegisteredUsers';
 export default function LoginSelectionForm() {
   const { toast } = useToast();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedRole, setSelectedRole] = useState<string | undefined>();
 
@@ -95,7 +94,7 @@ export default function LoginSelectionForm() {
       if (foundUser) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('isUserSignedIn', 'true');
-          localStorage.setItem('userEmail', foundUser.username); // Using username for display, as header splits by @
+          localStorage.setItem('userEmail', foundUser.username); // Using username for display
           localStorage.setItem('userFullName', foundUser.fullName); // Store full name
            // Dispatch authChange event for header to update
           window.dispatchEvent(new CustomEvent('authChange'));
@@ -105,12 +104,7 @@ export default function LoginSelectionForm() {
           description: `Selamat datang, ${foundUser.fullName}!`,
         });
         
-        const redirectUrl = searchParams.get('redirect');
-        if (redirectUrl) {
-          router.push(redirectUrl);
-        } else {
-          router.push('/'); // Or a user dashboard if it exists
-        }
+        router.push('/'); // Always redirect to main page after user login
         form.reset();
       } else {
          toast({
