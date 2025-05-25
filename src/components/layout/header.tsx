@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { School, Home, UserPlus, MessageCircle, LogIn, LogOut, UserCircle, LayoutDashboard } from 'lucide-react';
+import { School, Home, UserPlus, MessageCircle, LogIn, LogOut, UserCircle, LayoutDashboard, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -91,6 +91,12 @@ export default function Header() {
             <Link href="/kontak" className="flex items-center">
               <MessageCircle className="mr-1 sm:mr-2 h-4 w-4" />
               <span className="text-sm sm:text-base">Kontak</span>
+            </Link>
+          </Button>
+          <Button variant="ghost" asChild className="text-primary-foreground hover:bg-primary/80 hover:text-primary-foreground">
+            <Link href="/notifikasi" className="flex items-center">
+              <Mail className="mr-1 sm:mr-2 h-4 w-4" />
+              <span className="text-sm sm:text-base">Notifikasi</span>
             </Link>
           </Button>
 
