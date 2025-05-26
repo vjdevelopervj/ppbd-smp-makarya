@@ -18,12 +18,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { KeyRound, User, Send, ArrowLeft } from 'lucide-react';
+import { KeyRound, Mail, Send, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import type { UserNotification } from '@/app/notifikasi/page'; // Import the type
+import type { UserNotification } from '@/app/notifikasi/page';
 
 const forgotPasswordSchema = z.object({
-  username: z.string().min(3, { message: 'Username minimal 3 karakter.' }),
+  email: z.string().email({ message: 'Format email tidak valid.' }),
 });
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
   const form = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
-      username: '',
+      email: '',
     },
   });
 
@@ -49,13 +49,12 @@ export default function ForgotPasswordPage() {
     await new Promise((resolve) => setTimeout(resolve, 1000)); 
 
     const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
-    const storedUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
-    const existingUser = storedUsers.find((user: any) => user.username === data.username);
+    const storedUsers: any[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+    const existingUser = storedUsers.find((user: any) => user.email === data.email);
 
     if (existingUser) {
-      // Create and store notification
       if (typeof window !== 'undefined') {
-        const notificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${data.username}`;
+        const notificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${data.email}`;
         let userNotifications: UserNotification[] = [];
         const storedNotificationsRaw = localStorage.getItem(notificationsKey);
         if (storedNotificationsRaw) {
@@ -64,7 +63,7 @@ export default function ForgotPasswordPage() {
           } catch (e) { console.error("Error parsing notifications for forgot password:", e); }
         }
         
-        const resetLink = `/atur-password-baru?username=${encodeURIComponent(data.username)}`;
+        const resetLink = `/atur-password-baru?email=${encodeURIComponent(data.email)}`;
         const newNotification: UserNotification = {
           id: new Date().toISOString() + Math.random().toString(36).substring(2, 15),
           type: 'passwordResetRequest',
@@ -79,16 +78,16 @@ export default function ForgotPasswordPage() {
       }
 
       toast({
-        title: 'Username Ditemukan',
+        title: 'Email Ditemukan',
         description: 'Link untuk mengatur password baru telah dikirim ke notifikasi Anda dan Anda akan diarahkan.',
         className: 'bg-accent text-accent-foreground',
         duration: 4000,
       });
-      router.push(`/atur-password-baru?username=${encodeURIComponent(data.username)}`);
+      router.push(`/atur-password-baru?email=${encodeURIComponent(data.email)}`);
     } else {
       toast({
-        title: 'Username Tidak Ditemukan',
-        description: 'Username yang Anda masukkan tidak terdaftar. Pastikan username sudah benar atau daftar akun baru.',
+        title: 'Email Tidak Ditemukan',
+        description: 'Email yang Anda masukkan tidak terdaftar. Pastikan email sudah benar atau daftar akun baru.',
         variant: 'destructive',
         duration: 7000,
       });
@@ -105,7 +104,7 @@ export default function ForgotPasswordPage() {
           </div>
           <CardTitle className="text-3xl font-bold text-primary">Lupa Password</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Masukkan username Anda untuk melanjutkan proses reset password.
+            Masukkan email Anda untuk melanjutkan proses reset password.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
@@ -113,14 +112,14 @@ export default function ForgotPasswordPage() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
-                name="username"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center">
-                      <User className="mr-2 h-5 w-5 text-primary" /> Username
+                      <Mail className="mr-2 h-5 w-5 text-primary" /> Email
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Masukkan username Anda" {...field} />
+                      <Input type="email" placeholder="Masukkan email Anda" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

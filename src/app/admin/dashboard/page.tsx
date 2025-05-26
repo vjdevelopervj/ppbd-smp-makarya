@@ -36,16 +36,16 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
 interface RegisteredUser {
-  id: string;
+  id: string; // email
+  email: string;
   fullName: string;
-  username: string;
   registrationDate: string; 
   role: string;
 }
 
 interface StudentApplication {
   id: string; // NISN
-  username: string; // Username of the account that registered this student
+  userEmail: string; // Email of the account that registered this student
   fullName: string;
   nisn: string;
   gender: string;
@@ -109,12 +109,12 @@ export default function AdminDashboardPage() {
 
   const loadData = useCallback(() => {
     const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
-    const storedUsersFromUserReg = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+    const storedUsersFromUserReg: any[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
     setRegisteredUserCount(storedUsersFromUserReg.length);
     
     const formattedUsers: RegisteredUser[] = storedUsersFromUserReg.map((user: any) => ({
-      id: user.username, 
-      username: user.username,
+      id: user.email, 
+      email: user.email,
       fullName: user.fullName,
       registrationDate: user.registrationDate || new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toLocaleDateString('id-ID'), 
       role: 'user', 
@@ -185,12 +185,13 @@ export default function AdminDashboardPage() {
 
     if (itemToDelete.type === 'user') {
       const updatedUsers = detailedRegisteredUsers.filter(user => user.id !== itemToDelete.id);
-      localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedUsers.map(u => ({username: u.username, fullName: u.fullName, password: '***'})))); 
+      // Assuming id is email for users
+      localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedUsers.map(u => ({email: u.email, fullName: u.fullName, password: '***'})))); 
       setDetailedRegisteredUsers(updatedUsers);
       if (modalContent?.dataTypeKey === 'registeredUsers') {
         setModalContent(prev => prev ? {...prev, data: updatedUsers} : null);
       }
-      toast({ title: "Pengguna Dihapus", description: `Pengguna dengan username ${itemToDelete.id} telah dihapus.` });
+      toast({ title: "Pengguna Dihapus", description: `Pengguna dengan email ${itemToDelete.id} telah dihapus.` });
     } else if (itemToDelete.type === 'application') {
       const updatedApplications = detailedStudentApplications.filter(app => app.id !== itemToDelete.id);
       localStorage.setItem(STUDENT_APPLICATIONS_KEY, JSON.stringify(updatedApplications));
@@ -337,7 +338,7 @@ export default function AdminDashboardPage() {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Akun Pendaftar</TableHead>
+          <TableHead>Akun Pendaftar (Email)</TableHead>
           <TableHead>NISN</TableHead>
           <TableHead>Nama</TableHead>
           <TableHead>JK</TableHead>
@@ -362,7 +363,7 @@ export default function AdminDashboardPage() {
       <TableBody>
         {data.map((app) => (
           <TableRow key={app.id}>
-            <TableCell className="font-medium">{app.username}</TableCell>
+            <TableCell className="font-medium">{app.userEmail}</TableCell>
             <TableCell className="font-medium">{app.nisn}</TableCell>
             <TableCell>{app.fullName}</TableCell>
             <TableCell>{app.gender}</TableCell>
@@ -396,7 +397,7 @@ export default function AdminDashboardPage() {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Akun Pendaftar</TableHead>
+          <TableHead>Akun Pendaftar (Email)</TableHead>
           <TableHead>NISN</TableHead>
           <TableHead>Nama Lengkap</TableHead>
           <TableHead>Tgl. Form</TableHead>
@@ -409,7 +410,7 @@ export default function AdminDashboardPage() {
       <TableBody>
         {(data as StudentApplication[]).map((app) => (
           <TableRow key={app.id}>
-            <TableCell className="font-medium">{app.username}</TableCell>
+            <TableCell className="font-medium">{app.userEmail}</TableCell>
             <TableCell className="font-medium">{app.nisn}</TableCell>
             <TableCell>{app.fullName}</TableCell>
             <TableCell>{new Date(app.formSubmittedDate).toLocaleDateString('id-ID')}</TableCell>
@@ -628,7 +629,7 @@ export default function AdminDashboardPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Username</TableHead>
+                            <TableHead>Email</TableHead>
                             <TableHead>Nama Lengkap</TableHead>
                             <TableHead>Tgl. Registrasi</TableHead>
                             <TableHead>Peran</TableHead>
@@ -638,7 +639,7 @@ export default function AdminDashboardPage() {
                         <TableBody>
                           {(modalContent.data as RegisteredUser[]).map((user) => (
                             <TableRow key={user.id}>
-                              <TableCell className="font-medium">{user.username}</TableCell>
+                              <TableCell className="font-medium">{user.email}</TableCell>
                               <TableCell>{user.fullName}</TableCell>
                               <TableCell>{user.registrationDate}</TableCell>
                               <TableCell>
@@ -748,5 +749,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    

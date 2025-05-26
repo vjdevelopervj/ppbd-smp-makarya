@@ -25,14 +25,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { LogIn, User, Shield, KeyRound, Users } from 'lucide-react';
+import { LogIn, User, Shield, KeyRound, Users, Mail } from 'lucide-react';
 import Link from 'next/link';
+
+// Admin login schema
+const adminLoginSchema = z.object({
+  username: z.string().min(3, { message: 'Username admin minimal 3 karakter.' }),
+  password: z.string().min(6, { message: 'Password admin minimal 6 karakter.' }),
+});
+
+// User login schema
+const userLoginSchema = z.object({
+  email: z.string().email({ message: 'Format email tidak valid.' }),
+  password: z.string().min(6, { message: 'Password minimal 6 karakter.' }),
+});
 
 const loginSchema = z.object({
   role: z.enum(['admin', 'user'], { required_error: 'Peran harus dipilih.' }),
-  username: z.string().min(3, { message: 'Username minimal 3 karakter.' }),
+  identifier: z.string().min(3, { message: 'Email/Username minimal 3 karakter.'}), // Combined field for email or admin username
   password: z.string().min(6, { message: 'Password minimal 6 karakter.' }),
 });
+
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
@@ -48,7 +61,7 @@ export default function LoginSelectionForm() {
     resolver: zodResolver(loginSchema),
     defaultValues: {
       role: undefined,
-      username: '',
+      identifier: '',
       password: '',
     },
   });
@@ -57,18 +70,21 @@ export default function LoginSelectionForm() {
 
   useEffect(() => {
     setSelectedRole(roleValue);
-  }, [roleValue]);
+    form.setValue('identifier', ''); // Reset identifier when role changes
+    form.setValue('password', ''); // Reset password when role changes
+    form.clearErrors();
+  }, [roleValue, form]);
 
   async function onSubmit(data: LoginFormData) {
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1000)); 
 
     if (data.role === 'admin') {
-      if (data.username === 'adminmakarya' && data.password === 'makarya123') {
+      if (data.identifier === 'adminmakarya' && data.password === 'makarya123') {
         if (typeof window !== 'undefined') {
           localStorage.setItem('isAdminSignedIn', 'true');
-          localStorage.setItem('userRole', 'admin'); // Store role
-          localStorage.setItem('adminUsername', data.username); // Store admin username for display
+          localStorage.setItem('userRole', 'admin'); 
+          localStorage.setItem('adminUsername', data.identifier); 
           window.dispatchEvent(new CustomEvent('authChange'));
         }
         toast({
@@ -78,7 +94,7 @@ export default function LoginSelectionForm() {
           className: 'bg-accent text-accent-foreground',
         });
         router.push('/admin/dashboard');
-        form.reset();
+        form.reset({ role: 'admin', identifier: '', password: '' });
       } else {
         toast({
           title: 'Admin Login Gagal',
@@ -87,19 +103,29 @@ export default function LoginSelectionForm() {
         });
       }
     } else if (data.role === 'user') {
+      const validationResult = userLoginSchema.safeParse({ email: data.identifier, password: data.password });
+      if (!validationResult.success) {
+          form.setError('identifier', { type: 'manual', message: validationResult.error.errors.find(e => e.path.includes('email'))?.message || 'Email tidak valid.' });
+          if (validationResult.error.errors.find(e => e.path.includes('password'))) {
+            form.setError('password', { type: 'manual', message: validationResult.error.errors.find(e => e.path.includes('password'))?.message });
+          }
+          setIsSubmitting(false);
+          return;
+      }
+
       const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
-      const storedUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+      const storedUsers: any[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
       
       const foundUser = storedUsers.find(
-        (user: any) => user.username === data.username && user.password === data.password
+        (user: any) => user.email === data.identifier && user.password === data.password
       );
 
       if (foundUser) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('isUserSignedIn', 'true');
-          localStorage.setItem('userEmail', foundUser.username); 
+          localStorage.setItem('userEmail', foundUser.email); 
           localStorage.setItem('userFullName', foundUser.fullName); 
-          localStorage.setItem('userRole', 'user'); // Store role
+          localStorage.setItem('userRole', 'user'); 
           window.dispatchEvent(new CustomEvent('authChange'));
         }
         toast({
@@ -114,11 +140,11 @@ export default function LoginSelectionForm() {
         } else {
           router.push('/'); 
         }
-        form.reset();
+        form.reset({ role: 'user', identifier: '', password: '' });
       } else {
          toast({
           title: 'User Login Gagal',
-          description: 'Username atau password user salah.',
+          description: 'Email atau password user salah.',
           variant: 'destructive',
         });
       }
@@ -174,14 +200,20 @@ export default function LoginSelectionForm() {
               />
               <FormField
                 control={form.control}
-                name="username"
+                name="identifier"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center">
-                      <User className="mr-2 h-5 w-5 text-primary" /> Username
+                      {selectedRole === 'admin' ? <User className="mr-2 h-5 w-5 text-primary" /> : <Mail className="mr-2 h-5 w-5 text-primary" /> }
+                      {selectedRole === 'admin' ? 'Username Admin' : 'Email User'}
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Masukkan username Anda" {...field} />
+                      <Input 
+                        type={selectedRole === 'admin' ? 'text' : 'email'} 
+                        placeholder={selectedRole === 'admin' ? 'Masukkan username admin' : 'Masukkan email Anda'} 
+                        {...field} 
+                        disabled={!selectedRole}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -204,13 +236,18 @@ export default function LoginSelectionForm() {
                       )}
                     </div>
                     <FormControl>
-                      <Input type="password" placeholder="********" {...field} />
+                      <Input 
+                        type="password" 
+                        placeholder="********" 
+                        {...field} 
+                        disabled={!selectedRole}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting}>
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={isSubmitting || !selectedRole}>
                 {isSubmitting ? (
                   'Memproses...'
                 ) : (

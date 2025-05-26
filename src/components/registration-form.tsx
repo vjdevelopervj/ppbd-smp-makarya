@@ -57,14 +57,15 @@ const registrationFormSchema = z.object({
 
 export type RegistrationFormData = z.infer<typeof registrationFormSchema>;
 
-// Interface untuk data aplikasi siswa yang akan disimpan di localStorage
 export interface StudentApplicationDataToStore extends RegistrationFormData {
-  id: string; // Gunakan NISN sebagai ID unik
-  username: string; // Username akun yang melakukan pendaftaran
-  formSubmittedDate: string; // ISO string date
+  id: string; 
+  userEmail: string; 
+  formSubmittedDate: string; 
   quizCompleted: boolean;
   quizScore?: number;
   passedQuiz?: boolean;
+  // birthDate will be string here for storage
+  birthDate: string;
 }
 
 const STUDENT_APPLICATIONS_KEY = 'smpMakaryaStudentApplications';
@@ -74,7 +75,7 @@ export default function RegistrationForm() {
   const { toast } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1); // 1 for student, 2 for parent
+  const [currentStep, setCurrentStep] = useState(1); 
 
   const form = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationFormSchema),
@@ -120,16 +121,16 @@ export default function RegistrationForm() {
 
   async function onSubmit(data: RegistrationFormData) {
     setIsSubmitting(true);
-    let registeredUsername = '';
+    let loggedInUserEmail = '';
     if (typeof window !== 'undefined') {
-      registeredUsername = localStorage.getItem('userEmail') || 'anonim'; // Get username from localStorage
+      loggedInUserEmail = localStorage.getItem('userEmail') || 'anonim'; 
     }
 
     try {
-      // Include username in the data sent to the server action
       const result = await sendRegistrationEmail({
         ...data,
-        username: registeredUsername 
+        birthDate: data.birthDate.toISOString(), // Send as string
+        userEmail: loggedInUserEmail 
       });
 
       if (result.success) {
@@ -141,8 +142,8 @@ export default function RegistrationForm() {
           
           const newApplicationData: StudentApplicationDataToStore = {
             ...data,
-            username: registeredUsername, // Store username
-            birthDate: data.birthDate.toISOString(),
+            userEmail: loggedInUserEmail, 
+            birthDate: data.birthDate.toISOString(), // Store as ISO string
             id: data.nisn,
             formSubmittedDate: new Date().toISOString(),
             quizCompleted: false, 
@@ -515,5 +516,3 @@ export default function RegistrationForm() {
     </Form>
   );
 }
-
-    

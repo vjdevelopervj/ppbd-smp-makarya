@@ -18,17 +18,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { UserPlus, User as UserIcon, KeyRound, CheckCircle } from 'lucide-react';
+import { UserPlus, User as UserIcon, KeyRound, CheckCircle, Mail } from 'lucide-react';
 import Link from 'next/link';
 
 const userRegistrationSchema = z.object({
-  username: z.string().min(3, { message: 'Username minimal 3 karakter.' }).regex(/^[a-zA-Z0-9_]+$/, { message: 'Username hanya boleh berisi huruf, angka, dan underscore.' }),
   fullName: z.string().min(3, { message: 'Nama lengkap minimal 3 karakter.' }),
+  email: z.string().email({ message: 'Format email tidak valid.' }),
   password: z.string().min(6, { message: 'Password minimal 6 karakter.' }),
   confirmPassword: z.string().min(6, { message: 'Konfirmasi password minimal 6 karakter.' }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Password dan konfirmasi password tidak cocok.',
-  path: ['confirmPassword'], // Error will be shown under confirmPassword field
+  path: ['confirmPassword'], 
 });
 
 type UserRegistrationFormData = z.infer<typeof userRegistrationSchema>;
@@ -43,8 +43,8 @@ export default function UserRegistrationPage() {
   const form = useForm<UserRegistrationFormData>({
     resolver: zodResolver(userRegistrationSchema),
     defaultValues: {
-      username: '',
       fullName: '',
+      email: '',
       password: '',
       confirmPassword: '',
     },
@@ -52,27 +52,26 @@ export default function UserRegistrationPage() {
 
   async function onSubmit(data: UserRegistrationFormData) {
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1000)); 
 
     const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
-    const storedUsers: UserRegistrationFormData[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+    const storedUsers: any[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
 
-    const existingUser = storedUsers.find(user => user.username === data.username);
+    const existingUser = storedUsers.find(user => user.email === data.email);
     if (existingUser) {
       toast({
         title: 'Registrasi Gagal',
-        description: 'Username sudah digunakan. Silakan pilih username lain.',
+        description: 'Email sudah digunakan. Silakan gunakan email lain.',
         variant: 'destructive',
       });
       setIsSubmitting(false);
       return;
     }
 
-    // Store only necessary data, exclude confirmPassword
     const newUser = {
-      username: data.username,
+      email: data.email,
       fullName: data.fullName,
-      password: data.password, // In a real app, HASH THE PASSWORD before storing
+      password: data.password, 
     };
     storedUsers.push(newUser);
 
@@ -92,7 +91,7 @@ export default function UserRegistrationPage() {
       duration: 5000,
     });
     form.reset();
-    router.push('/'); // Redirect to login page (homepage)
+    router.push('/'); 
     setIsSubmitting(false);
   }
 
@@ -128,14 +127,14 @@ export default function UserRegistrationPage() {
               />
               <FormField
                 control={form.control}
-                name="username"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center">
-                      <UserIcon className="mr-2 h-5 w-5 text-primary" /> Username
+                      <Mail className="mr-2 h-5 w-5 text-primary" /> Email
                     </FormLabel>
                     <FormControl>
-                      <Input placeholder="Pilih username (unik)" {...field} />
+                      <Input type="email" placeholder="Masukkan email Anda (untuk login)" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

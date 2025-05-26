@@ -37,20 +37,20 @@ function SetNewPasswordForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const username = searchParams.get('username');
+  const email = searchParams.get('email'); // Changed from username to email
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userExists, setUserExists] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   useEffect(() => {
-    if (username) {
+    if (email) {
       const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
-      const storedUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
-      const foundUser = storedUsers.find((user: any) => user.username === username);
+      const storedUsers: any[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+      const foundUser = storedUsers.find((user: any) => user.email === email);
       setUserExists(!!foundUser);
     }
     setIsLoadingUser(false);
-  }, [username]);
+  }, [email]);
 
   const form = useForm<NewPasswordFormData>({
     resolver: zodResolver(newPasswordSchema),
@@ -61,10 +61,10 @@ function SetNewPasswordForm() {
   });
 
   async function onSubmit(data: NewPasswordFormData) {
-    if (!username || !userExists) {
+    if (!email || !userExists) {
       toast({
         title: 'Error',
-        description: 'Username tidak valid atau tidak ditemukan. Tidak dapat mereset password.',
+        description: 'Email tidak valid atau tidak ditemukan. Tidak dapat mereset password.',
         variant: 'destructive',
       });
       router.push('/');
@@ -72,14 +72,14 @@ function SetNewPasswordForm() {
     }
 
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1000)); 
 
     const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
-    let storedUsers = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
+    let storedUsers: any[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
 
-    const userIndex = storedUsers.findIndex((user: any) => user.username === username);
+    const userIndex = storedUsers.findIndex((user: any) => user.email === email);
     if (userIndex > -1) {
-      storedUsers[userIndex].password = data.password; // In real app, HASH THE PASSWORD
+      storedUsers[userIndex].password = data.password; 
       if (typeof window !== 'undefined') {
         localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(storedUsers));
       }
@@ -95,12 +95,11 @@ function SetNewPasswordForm() {
         duration: 5000,
       });
       form.reset();
-      router.push('/'); // Redirect to login page
+      router.push('/'); 
     } else {
-      // Should not happen if userExists check is correct, but as a fallback
       toast({
         title: 'Update Password Gagal',
-        description: 'Username tidak ditemukan. Silakan coba lagi proses lupa password.',
+        description: 'Email tidak ditemukan. Silakan coba lagi proses lupa password.',
         variant: 'destructive',
       });
     }
@@ -116,7 +115,7 @@ function SetNewPasswordForm() {
     );
   }
 
-  if (!username || !userExists) {
+  if (!email || !userExists) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)] py-12">
         <Card className="w-full max-w-md text-center shadow-xl">
@@ -125,7 +124,7 @@ function SetNewPasswordForm() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              Link untuk mengatur ulang password tidak valid atau username tidak ditemukan.
+              Link untuk mengatur ulang password tidak valid atau email tidak ditemukan.
             </p>
             <Button asChild className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
               <Link href="/">Kembali ke Halaman Utama</Link>
@@ -145,7 +144,7 @@ function SetNewPasswordForm() {
           </div>
           <CardTitle className="text-3xl font-bold text-primary">Atur Password Baru</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Buat password baru untuk akun <span className="font-semibold">{username}</span>.
+            Buat password baru untuk akun <span className="font-semibold">{email}</span>.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">
