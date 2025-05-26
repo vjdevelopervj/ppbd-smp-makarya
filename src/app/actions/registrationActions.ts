@@ -4,9 +4,11 @@
 import type { StudentApplicationDataToStore } from '@/components/registration-form';
 
 // The data received by the action now includes 'userUsername' and birthDate as string
-export type RegistrationEmailData = Omit<StudentApplicationDataToStore, 'id' | 'formSubmittedDate' | 'quizCompleted' | 'quizScore' | 'passedQuiz' | 'birthDate' | 'userUsername'> & {
-  birthDate: string; // birthDate is already a string here (ISO format from StudentApplicationDataToStore)
-  userUsername: string; // Changed from userEmail to userUsername
+// studentPhoneNumber is now optional and might not be present.
+export type RegistrationEmailData = Omit<StudentApplicationDataToStore, 'id' | 'formSubmittedDate' | 'quizCompleted' | 'quizScore' | 'passedQuiz' | 'birthDate' | 'userUsername' | 'studentPhoneNumber'> & {
+  birthDate: string; 
+  userUsername: string; 
+  studentPhoneNumber?: string; // Made optional
 };
 
 
@@ -22,7 +24,7 @@ export async function sendRegistrationEmail(
   console.log('Registration Data:', {
     ...formData,
     userUsername: formData.userUsername, 
-    studentPhoneNumber: formData.studentPhoneNumber || 'Tidak diisi',
+    studentPhoneNumber: formData.studentPhoneNumber || 'Tidak diisi', // Handle if undefined
   });
 
   // Simulate email sending process
@@ -48,7 +50,7 @@ export async function sendRegistrationEmail(
   //     <p><strong>Tempat, Tanggal Lahir:</strong> \${formData.birthPlace}, \${new Date(formData.birthDate).toLocaleDateString('id-ID')}</p>
   //     <p><strong>Agama:</strong> \${formData.religion}</p>
   //     <p><strong>Alamat:</strong> \${formData.address}</p>
-  //     <p><strong>No. HP Siswa:</strong> \${formData.studentPhoneNumber || 'Tidak diisi'}</p>
+  //     // <p><strong>No. HP Siswa:</strong> \${formData.studentPhoneNumber || 'Tidak diisi'}</p> // This line is now effectively removed or handled if studentPhoneNumber is optional
   //     <p><strong>Asal Sekolah:</strong> \${formData.previousSchool}</p>
   //     <p><strong>Ijazah Terakhir:</strong> \${formData.lastCertificate}</p>
   //     <h2>Data Orang Tua</h2>

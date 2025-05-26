@@ -29,13 +29,13 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import type { AdminInboxMessage } from '@/app/kontak/page'; // Ensure this path and interface are correct
+import type { AdminInboxMessage } from '@/app/kontak/page'; 
 import type { UserNotification } from '@/app/notifikasi/page';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
 interface RegisteredUser {
-  id: string; // username
+  id: string; 
   username: string;
   fullName: string;
   registrationDate: string; 
@@ -43,7 +43,7 @@ interface RegisteredUser {
 }
 
 interface StudentApplication {
-  id: string; // NISN
+  id: string; 
   userUsername: string; 
   fullName: string;
   nisn: string;
@@ -52,7 +52,7 @@ interface StudentApplication {
   birthDate: string; 
   religion: string;
   address: string;
-  studentPhoneNumber?: string;
+  studentPhoneNumber?: string; // Kept optional for backward compatibility if old data exists
   previousSchool: string;
   lastCertificate: string;
   fatherName: string;
@@ -357,7 +357,7 @@ export default function AdminDashboardPage() {
           <TableHead>Tmp/Tgl Lahir</TableHead>
           <TableHead>Agama</TableHead>
           <TableHead className="min-w-[200px]">Alamat</TableHead>
-          <TableHead>No.HP Siswa</TableHead>
+          {/* No.HP Siswa column removed */}
           <TableHead>Asal Sekolah</TableHead>
           <TableHead>Ijazah</TableHead>
           <TableHead>Nama Ayah</TableHead>
@@ -382,7 +382,7 @@ export default function AdminDashboardPage() {
             <TableCell>{`${app.birthPlace}, ${new Date(app.birthDate).toLocaleDateString('id-ID')}`}</TableCell>
             <TableCell>{app.religion}</TableCell>
             <TableCell className="max-w-xs whitespace-pre-wrap break-words">{app.address}</TableCell>
-            <TableCell>{app.studentPhoneNumber || '-'}</TableCell>
+            {/* studentPhoneNumber TableCell removed */}
             <TableCell>{app.previousSchool}</TableCell>
             <TableCell>{app.lastCertificate}</TableCell>
             <TableCell>{app.fatherName}</TableCell>

@@ -34,15 +34,19 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { sendRegistrationEmail } from '@/app/actions/registrationActions';
 
+const currentYear = new Date().getFullYear();
+
 const registrationFormSchema = z.object({
   fullName: z.string().min(3, { message: 'Nama lengkap minimal 3 karakter.' }),
   nisn: z.string().length(10, { message: 'NISN harus 10 digit.' }).regex(/^\d+$/, { message: "NISN hanya boleh berisi angka." }),
   gender: z.enum(['Laki-laki', 'Perempuan'], { required_error: 'Jenis kelamin harus dipilih.' }),
   birthPlace: z.string().min(3, { message: 'Tempat lahir minimal 3 karakter.' }),
-  birthDate: z.date({ required_error: 'Tanggal lahir harus diisi.' }),
+  birthDate: z.date({ required_error: 'Tanggal lahir harus diisi.' })
+    .max(new Date(currentYear - 10, 11, 31), { message: 'Usia calon siswa minimal 10 tahun.' }) // Example: at least 10 years old
+    .min(new Date(currentYear - 20, 0, 1), { message: 'Usia calon siswa maksimal 20 tahun.' }), // Example: at most 20 years old
   religion: z.string().min(3, { message: 'Agama minimal 3 karakter.' }),
   address: z.string().min(10, { message: 'Alamat lengkap minimal 10 karakter.' }),
-  studentPhoneNumber: z.string().min(10, { message: 'Nomor telepon minimal 10 digit.' }).regex(/^\d+$/, { message: "Nomor telepon hanya boleh berisi angka." }).optional().or(z.literal('')),
+  // studentPhoneNumber is removed
   previousSchool: z.string().min(3, { message: 'Asal sekolah minimal 3 karakter.' }),
   lastCertificate: z.enum(['SD/MI', 'Paket A'], { required_error: 'Ijazah terakhir harus dipilih.'}),
   
@@ -57,14 +61,16 @@ const registrationFormSchema = z.object({
 
 export type RegistrationFormData = z.infer<typeof registrationFormSchema>;
 
-export interface StudentApplicationDataToStore extends RegistrationFormData {
+// StudentApplicationDataToStore now omits studentPhoneNumber
+export interface StudentApplicationDataToStore extends Omit<RegistrationFormData, 'studentPhoneNumber'> {
   id: string; 
-  userUsername: string; // Changed from userEmail to userUsername
+  userUsername: string;
   formSubmittedDate: string; 
   quizCompleted: boolean;
   quizScore?: number;
   passedQuiz?: boolean;
   birthDate: string; // birthDate will be string here for storage
+  studentPhoneNumber?: string; // Keep it optional here if it might exist in old data, but not in new forms
 }
 
 const STUDENT_APPLICATIONS_KEY = 'smpMakaryaStudentApplications';
@@ -84,7 +90,7 @@ export default function RegistrationForm() {
       birthPlace: '',
       religion: '',
       address: '',
-      studentPhoneNumber: '',
+      // studentPhoneNumber: '', // Removed
       previousSchool: '',
       fatherName: '',
       fatherOccupation: '',
@@ -96,9 +102,10 @@ export default function RegistrationForm() {
     },
   });
 
+  // studentPhoneNumber removed from this list
   const studentFields: (keyof RegistrationFormData)[] = [
     'fullName', 'nisn', 'gender', 'birthPlace', 'birthDate', 
-    'religion', 'address', 'studentPhoneNumber', 'previousSchool', 'lastCertificate'
+    'religion', 'address', 'previousSchool', 'lastCertificate'
   ];
 
   const handleNextStep = async () => {
@@ -120,17 +127,23 @@ export default function RegistrationForm() {
 
   async function onSubmit(data: RegistrationFormData) {
     setIsSubmitting(true);
-    let loggedInUserUsername = ''; // Changed variable name
+    let loggedInUserUsername = ''; 
     if (typeof window !== 'undefined') {
-      loggedInUserUsername = localStorage.getItem('userUsername') || 'anonim'; // Get userUsername
+      loggedInUserUsername = localStorage.getItem('userUsername') || 'anonim'; 
     }
 
-    try {
-      const result = await sendRegistrationEmail({
-        ...data,
+    // Create dataForEmail, explicitly excluding studentPhoneNumber if it somehow exists in 'data'
+    // though it shouldn't as it's removed from the form schema.
+    const { studentPhoneNumber, ...restOfData } = data;
+    const dataForAction = {
+        ...restOfData,
         birthDate: data.birthDate.toISOString(), 
-        userUsername: loggedInUserUsername // Pass userUsername
-      });
+        userUsername: loggedInUserUsername
+    };
+
+
+    try {
+      const result = await sendRegistrationEmail(dataForAction);
 
       if (result.success) {
         if (typeof window !== 'undefined') {
@@ -140,9 +153,7 @@ export default function RegistrationForm() {
           const existingApplicationIndex = applications.findIndex(app => app.nisn === data.nisn);
           
           const newApplicationData: StudentApplicationDataToStore = {
-            ...data,
-            userUsername: loggedInUserUsername, // Store userUsername
-            birthDate: data.birthDate.toISOString(), 
+            ...dataForAction, // Use dataForAction which omits studentPhoneNumber
             id: data.nisn,
             formSubmittedDate: new Date().toISOString(),
             quizCompleted: false, 
@@ -306,10 +317,13 @@ export default function RegistrationForm() {
                           selected={field.value}
                           onSelect={field.onChange}
                           disabled={(date) =>
-                            date > new Date() || date < new Date('1900-01-01')
+                            date > new Date(currentYear - 10, 11, 31) || date < new Date(currentYear - 20, 0, 1)
                           }
                           initialFocus
                           locale={id}
+                          captionLayout="dropdown-buttons"
+                          fromYear={currentYear - 20}
+                          toYear={currentYear - 10}
                         />
                       </PopoverContent>
                     </Popover>
@@ -335,20 +349,7 @@ export default function RegistrationForm() {
                 </FormItem>
               )}
             />
-
-            <FormField
-                control={form.control}
-                name="studentPhoneNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>No. HP Calon Siswa (Aktif WA) <span className="text-muted-foreground text-xs">(Opsional)</span></FormLabel>
-                    <FormControl>
-                      <Input type="tel" placeholder="08xxxxxxxxxx" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            {/* studentPhoneNumber FormField removed */}
            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
