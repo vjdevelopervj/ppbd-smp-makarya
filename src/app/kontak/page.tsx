@@ -40,6 +40,7 @@ export interface AdminInboxMessage {
   timestamp: string; // ISO string
   isRead?: boolean;
   isReplied?: boolean;
+  senderUsername?: string; // Username of the logged-in user who sent the message
 }
 
 const ADMIN_INBOX_MESSAGES_KEY = 'smpMakaryaAdminInboxMessages';
@@ -60,9 +61,8 @@ export default function ContactPage() {
 
   async function onSubmit(data: ContactFormData) {
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API delay
+    await new Promise((resolve) => setTimeout(resolve, 1000)); 
 
-    // Store message for admin inbox
     if (typeof window !== 'undefined') {
       const adminMessagesRaw = localStorage.getItem(ADMIN_INBOX_MESSAGES_KEY);
       let adminMessages: AdminInboxMessage[] = [];
@@ -78,10 +78,16 @@ export default function ContactPage() {
           }
         } catch (error) {
           console.error("Error parsing admin inbox messages from localStorage:", error);
-          adminMessages = []; // Reset ke array kosong jika ada error parsing
+          adminMessages = []; 
         }
       }
       
+      let loggedInUserUsername: string | undefined = undefined;
+      const storedUsername = localStorage.getItem('userUsername');
+      if (storedUsername) {
+        loggedInUserUsername = storedUsername;
+      }
+
       const newMessage: AdminInboxMessage = {
         id: new Date().toISOString() + Math.random().toString(36).substring(2, 10),
         fromName: data.name,
@@ -91,6 +97,7 @@ export default function ContactPage() {
         timestamp: new Date().toISOString(),
         isRead: false,
         isReplied: false,
+        senderUsername: loggedInUserUsername, // Store the sender's username
       };
       adminMessages.push(newMessage);
       localStorage.setItem(ADMIN_INBOX_MESSAGES_KEY, JSON.stringify(adminMessages));

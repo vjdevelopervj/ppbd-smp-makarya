@@ -8,8 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX, Trash2, Download, MessageSquareText, Send, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input'; // Not used, but Label is
-import { Label } from '@/components/ui/label'; // Make sure Label is imported
+import { Label } from '@/components/ui/label'; 
 import {
   Dialog,
   DialogContent,
@@ -30,7 +29,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import type { AdminInboxMessage } from '@/app/kontak/page';
+import type { AdminInboxMessage } from '@/app/kontak/page'; // Ensure this path and interface are correct
 import type { UserNotification } from '@/app/notifikasi/page';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -45,12 +44,12 @@ interface RegisteredUser {
 
 interface StudentApplication {
   id: string; // NISN
-  userUsername: string; // Username of the account that registered this student
+  userUsername: string; 
   fullName: string;
   nisn: string;
   gender: string;
   birthPlace: string;
-  birthDate: string; // ISO string from localStorage
+  birthDate: string; 
   religion: string;
   address: string;
   studentPhoneNumber?: string;
@@ -113,7 +112,7 @@ export default function AdminDashboardPage() {
     setRegisteredUserCount(storedUsersFromUserReg.length);
     
     const formattedUsers: RegisteredUser[] = storedUsersFromUserReg.map((user: any) => ({
-      id: user.username, // Use username as id
+      id: user.username, 
       username: user.username,
       fullName: user.fullName,
       registrationDate: user.registrationDate || new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toLocaleDateString('id-ID'), 
@@ -185,7 +184,6 @@ export default function AdminDashboardPage() {
 
     if (itemToDelete.type === 'user') {
       const updatedUsers = detailedRegisteredUsers.filter(user => user.id !== itemToDelete.id);
-      // Assuming id is username for users
       localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedUsers.map(u => ({username: u.username, fullName: u.fullName, password: '***'})))); 
       setDetailedRegisteredUsers(updatedUsers);
       if (modalContent?.dataTypeKey === 'registeredUsers') {
@@ -276,8 +274,21 @@ export default function AdminDashboardPage() {
     }
 
     if (typeof window !== 'undefined') {
-      // Notifications for user replies are keyed by the email from the contact form.
-      const userNotificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${replyingToMessage.fromEmail}`;
+      const targetUserIdentifier = replyingToMessage.senderUsername;
+
+      if (!targetUserIdentifier) {
+        toast({
+          title: "Tidak Dapat Mengirim Notifikasi",
+          description: `Pengguna ini (${replyingToMessage.fromName} - ${replyingToMessage.fromEmail}) tidak memiliki username terasosiasi untuk notifikasi dalam aplikasi. Balasan tidak dikirim ke notifikasi pengguna.`,
+          variant: "destructive",
+          duration: 7000,
+        });
+        setIsReplyModalOpen(false);
+        setReplyingToMessage(null);
+        return;
+      }
+
+      const userNotificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${targetUserIdentifier}`;
       let userNotifications: UserNotification[] = [];
       const storedNotificationsRaw = localStorage.getItem(userNotificationsKey);
       if (storedNotificationsRaw) {
@@ -292,7 +303,7 @@ export default function AdminDashboardPage() {
         title: `Balasan dari Admin: ${replyingToMessage.subject}`,
         message: replyMessage,
         timestamp: new Date().toISOString(),
-        payload: { originalSubject: replyingToMessage.subject, originalSender: replyingToMessage.fromName },
+        payload: { originalSubject: replyingToMessage.subject, originalSender: replyingToMessage.fromName, contactEmail: replyingToMessage.fromEmail },
         isRead: false,
       };
       userNotifications.push(newReplyNotification);
@@ -307,7 +318,7 @@ export default function AdminDashboardPage() {
         setModalContent(prev => prev ? {...prev, data: updatedAdminMessages} : null);
       }
       
-      toast({ title: "Balasan Terkirim", description: `Pesan balasan telah dikirim ke notifikasi untuk ${replyingToMessage.fromEmail}.` });
+      toast({ title: "Balasan Terkirim", description: `Pesan balasan telah dikirim ke notifikasi untuk username: ${targetUserIdentifier}.` });
       setIsReplyModalOpen(false);
       setReplyingToMessage(null);
       setReplyMessage('');
@@ -443,7 +454,8 @@ export default function AdminDashboardPage() {
         <TableRow>
           <TableHead>Tanggal</TableHead>
           <TableHead>Dari</TableHead>
-          <TableHead>Email</TableHead>
+          <TableHead>Email Kontak</TableHead>
+          <TableHead>Username Pengirim</TableHead>
           <TableHead>Subjek</TableHead>
           <TableHead className="min-w-[250px]">Pesan</TableHead>
           <TableHead>Status</TableHead>
@@ -456,6 +468,7 @@ export default function AdminDashboardPage() {
             <TableCell>{format(new Date(msg.timestamp), "dd MMM yy, HH:mm", { locale: id })}</TableCell>
             <TableCell>{msg.fromName}</TableCell>
             <TableCell>{msg.fromEmail}</TableCell>
+            <TableCell>{msg.senderUsername || <span className="text-xs text-muted-foreground italic">Tidak Login</span>}</TableCell>
             <TableCell>{msg.subject}</TableCell>
             <TableCell className="max-w-md whitespace-pre-wrap break-words">{msg.message}</TableCell>
              <TableCell>
@@ -465,8 +478,9 @@ export default function AdminDashboardPage() {
               }
             </TableCell>
             <TableCell className="space-x-1">
-              <Button variant="outline" size="sm" onClick={() => handleOpenReplyModal(msg)} disabled={msg.isReplied}>
-                <Send className="mr-1 h-3 w-3" /> {msg.isReplied ? 'Telah Dibalas': 'Balas'}
+              <Button variant="outline" size="sm" onClick={() => handleOpenReplyModal(msg)} disabled={msg.isReplied || !msg.senderUsername}>
+                <Send className="mr-1 h-3 w-3" /> 
+                {msg.isReplied ? 'Telah Dibalas': (msg.senderUsername ? 'Balas User' : 'Tidak Bisa Dibalas')}
               </Button>
               <Button variant="ghost" size="icon" onClick={() => handleDeleteConfirmation(msg.id, 'adminMessage')}>
                 <Trash2 className="h-4 w-4 text-destructive" />
@@ -664,7 +678,7 @@ export default function AdminDashboardPage() {
                             renderFullApplicationDetailsTable(modalContent.data as StudentApplication[]) :
                             renderQuizStatusTable(modalContent.data as StudentApplication[])
                         ) :
-                        renderFullApplicationDetailsTable(modalContent.data as StudentApplication[]) // Fallback, should ideally not happen
+                        renderFullApplicationDetailsTable(modalContent.data as StudentApplication[]) 
                     )}
                     {modalContent.type === 'adminMessages' && modalContent.dataTypeKey === 'incomingMessages' && (
                       renderAdminInboxTable(modalContent.data as AdminInboxMessage[])
@@ -700,7 +714,13 @@ export default function AdminDashboardPage() {
           <DialogHeader>
             <DialogTitle>Balas Pesan dari: {replyingToMessage?.fromName}</DialogTitle>
             <DialogDescription>
-              Kirim balasan ke email: {replyingToMessage?.fromEmail} (Notifikasi akan muncul di akun pengguna jika email sesuai dengan username terdaftar)
+            {replyingToMessage?.senderUsername
+                ? `Balasan akan dikirim ke notifikasi pengguna: ${replyingToMessage.senderUsername}.`
+                : `Pengguna ini (${replyingToMessage?.fromName} - ${replyingToMessage?.fromEmail}) tidak memiliki username terasosiasi. Balasan tidak dapat dikirim ke notifikasi dalam aplikasi.`
+            }
+            {replyingToMessage?.senderUsername && replyingToMessage.fromEmail !== replyingToMessage.senderUsername && (
+                ` Email kontak yang diberikan: ${replyingToMessage.fromEmail}`
+            )}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
@@ -721,12 +741,17 @@ export default function AdminDashboardPage() {
                 placeholder="Ketik balasan Anda di sini..."
                 rows={5}
                 className="mt-1"
+                disabled={!replyingToMessage?.senderUsername}
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsReplyModalOpen(false)}>Batal</Button>
-            <Button onClick={handleSendReply} className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Button 
+              onClick={handleSendReply} 
+              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              disabled={!replyingToMessage?.senderUsername || !replyMessage.trim()}
+            >
               <Send className="mr-2 h-4 w-4" /> Kirim Balasan
             </Button>
           </DialogFooter>
