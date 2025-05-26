@@ -8,7 +8,7 @@ import { Inbox, BellRing, KeyRound, FileText, Trash2, AlertTriangle, MessageSqua
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { useToast } from '@/hooks/use-toast'; // Added import
+import { useToast } from '@/hooks/use-toast';
 
 export interface UserNotification {
   id: string;
@@ -26,16 +26,16 @@ export default function NotificationPage() {
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [currentUserIdentifier, setCurrentUserIdentifier] = useState<string | null>(null); // To store username
   const [isLoading, setIsLoading] = useState(true);
-  const { toast } = useToast(); // Correctly using the imported hook
+  const { toast } = useToast(); 
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const userUsername = localStorage.getItem('userUsername'); // Get username
+      const userUsername = localStorage.getItem('userUsername'); 
       const userRole = localStorage.getItem('userRole');
       
       if (userUsername && userRole === 'user') {
         setCurrentUserIdentifier(userUsername);
-        // Load notifications keyed by username (for exam results, password resets)
+        
         const userNotificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${userUsername}`;
         let userSpecificNotifications: UserNotification[] = [];
         const storedUserNotificationsRaw = localStorage.getItem(userNotificationsKey);
@@ -47,36 +47,13 @@ export default function NotificationPage() {
           }
         }
         
-        // Attempt to load notifications keyed by email (for admin replies to contact form)
-        // This assumes username might be an email, or user might want to see replies to their contact email here.
-        // This part can be complex if username is not an email. For simplicity, we'll assume
-        // if the username is also a valid email, it might try to fetch those.
-        // A more robust solution might require linking contact email to username if user is logged in when contacting.
-        let emailBasedNotifications: UserNotification[] = [];
-        // If the user's username happens to be an email, we might also check notifications for that key
-        // This is a simple check, not a guarantee it's an email
-        if (userUsername.includes('@')) { 
-          const emailNotificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${userUsername}`;
-          if (emailNotificationsKey !== userNotificationsKey) { // Avoid double loading if username is the key
-            const storedEmailNotificationsRaw = localStorage.getItem(emailNotificationsKey);
-            if (storedEmailNotificationsRaw) {
-              try {
-                emailBasedNotifications = JSON.parse(storedEmailNotificationsRaw);
-              } catch (error) {
-                console.error("Error parsing email-based notifications:", error);
-              }
-            }
-          }
-        }
+        // Not attempting to load email-based notifications directly here anymore,
+        // as admin replies are now targeted to username-specific notification keys if user was logged in.
+        // If admin replied to a contact form message from a non-logged-in user (or user without username),
+        // that reply would not appear here, which is the current design.
         
-        // Combine and sort notifications
-        const combinedNotifications = [...userSpecificNotifications, ...emailBasedNotifications];
-        // Deduplicate by ID if any overlap (though keys should be different unless username is an email)
-        const uniqueNotifications = Array.from(new Set(combinedNotifications.map(n => n.id)))
-          .map(id => combinedNotifications.find(n => n.id === id)!);
-          
-        uniqueNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        setNotifications(uniqueNotifications);
+        userSpecificNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setNotifications(userSpecificNotifications);
 
       }
       setIsLoading(false);
@@ -87,17 +64,7 @@ export default function NotificationPage() {
     if (typeof window !== 'undefined' && currentUserIdentifier) {
       const userNotificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${currentUserIdentifier}`;
       localStorage.removeItem(userNotificationsKey);
-      // Also consider removing email-keyed notifications if applicable and desired
-      // For now, just removing username-keyed ones.
-      setNotifications(notifications.filter(n => {
-        // This logic might need refinement if we want to clear email-keyed notifications too
-        // For now, it only clears notifications that would be loaded based on current logic
-        const notificationKeyForThisUser = `${USER_NOTIFICATIONS_BASE_KEY}${currentUserIdentifier}`;
-        // A bit of a simplification: if notification's key matches current user, remove it.
-        // This doesn't perfectly align with how they were loaded if username is not an email,
-        // but will clear the currently displayed ones associated with the username.
-        return localStorage.getItem(notificationKeyForThisUser) === null; 
-      }));
+      setNotifications([]); // Clear displayed notifications
        toast({ title: "Notifikasi Dihapus", description: "Semua notifikasi untuk " + currentUserIdentifier + " telah dihapus." });
     }
   };
@@ -215,13 +182,17 @@ export default function NotificationPage() {
                   </div>
                 )}
                 {notification.type === 'adminMessage' && (
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     {notification.payload?.originalSubject && (
-                      <p className="text-xs text-muted-foreground">
-                        Menanggapi pesan Anda tentang: "{notification.payload.originalSubject}"
-                      </p>
+                      <div>
+                        <p className="text-xs font-medium text-muted-foreground">Perihal Pesan Asli Anda:</p>
+                        <p className="text-sm p-2 border rounded-md bg-muted/50 mt-1">{notification.payload.originalSubject}</p>
+                      </div>
                     )}
-                    <p className="whitespace-pre-wrap">{notification.message}</p>
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mt-2">Balasan dari Admin:</p>
+                      <p className="text-sm p-2 border rounded-md whitespace-pre-wrap bg-card mt-1">{notification.message}</p>
+                    </div>
                   </div>
                 )}
               </CardContent>
