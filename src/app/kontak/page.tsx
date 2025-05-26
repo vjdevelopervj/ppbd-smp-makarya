@@ -18,8 +18,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, MapPin, Phone, Send, MessageSquarePlus } from 'lucide-react';
+import { Mail, MapPin, Phone, Send } from 'lucide-react';
 import Image from 'next/image';
+import { useState } from 'react';
 
 const contactFormSchema = z.object({
   name: z.string().min(3, { message: 'Nama minimal 3 karakter.' }),
@@ -45,6 +46,8 @@ const ADMIN_INBOX_MESSAGES_KEY = 'smpMakaryaAdminInboxMessages';
 
 export default function ContactPage() {
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<ContactFormData>({
     resolver: zodResolver(contactFormSchema),
     defaultValues: {
@@ -62,7 +65,22 @@ export default function ContactPage() {
     // Store message for admin inbox
     if (typeof window !== 'undefined') {
       const adminMessagesRaw = localStorage.getItem(ADMIN_INBOX_MESSAGES_KEY);
-      let adminMessages: AdminInboxMessage[] = adminMessagesRaw ? JSON.parse(adminMessagesRaw) : [];
+      let adminMessages: AdminInboxMessage[] = [];
+      
+      if (adminMessagesRaw) {
+        try {
+          const parsedData = JSON.parse(adminMessagesRaw);
+          if (Array.isArray(parsedData)) {
+            adminMessages = parsedData;
+          } else {
+            console.warn("Data pesan admin di localStorage bukan array, direset.");
+            adminMessages = [];
+          }
+        } catch (error) {
+          console.error("Error parsing admin inbox messages from localStorage:", error);
+          adminMessages = []; // Reset ke array kosong jika ada error parsing
+        }
+      }
       
       const newMessage: AdminInboxMessage = {
         id: new Date().toISOString() + Math.random().toString(36).substring(2, 10),
@@ -87,11 +105,10 @@ export default function ContactPage() {
     form.reset();
     setIsSubmitting(false);
   }
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   return (
-    <div className="space-y-12">
-      <Card className="shadow-xl overflow-hidden">
+    <div className="space-y-12 py-8">
+      <Card className="shadow-xl overflow-hidden animate-fade-in-up">
         <CardHeader className="bg-primary text-primary-foreground">
           <CardTitle className="text-3xl font-bold flex items-center">
             <Mail className="mr-3 h-8 w-8" /> Hubungi Kami
@@ -217,5 +234,3 @@ export default function ContactPage() {
     </div>
   );
 }
-
-    
