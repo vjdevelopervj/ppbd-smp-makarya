@@ -5,10 +5,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX, Trash2, Download, MessageSquareText, Send, UserCog } from 'lucide-react';
+import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX, Trash2, Download, MessageSquareText, Send, UserCog, FileArchive } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label'; 
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
@@ -29,32 +29,33 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
-import type { AdminInboxMessage } from '@/app/kontak/page'; 
+import type { AdminInboxMessage } from '@/app/kontak/page';
 import type { UserNotification } from '@/app/notifikasi/page';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
 interface RegisteredUser {
-  id: string; 
+  id: string;
   username: string;
   fullName: string;
-  registrationDate: string; 
+  registrationDate: string;
   role: string;
 }
 
 interface StudentApplication {
-  id: string; 
-  userUsername: string; 
+  id: string; // nisn
+  userUsername: string;
   fullName: string;
   nisn: string;
   gender: string;
   birthPlace: string;
-  birthDate: string; 
+  birthDate: string;
   religion: string;
   address: string;
-  studentPhoneNumber?: string; // Kept optional for backward compatibility if old data exists
   previousSchool: string;
   lastCertificate: string;
+  kartuKeluargaFileName?: string;
+  ijazahSklFileName?: string;
   fatherName: string;
   fatherOccupation: string;
   fatherPhoneNumber: string;
@@ -62,7 +63,7 @@ interface StudentApplication {
   motherOccupation: string;
   motherPhoneNumber: string;
   parentEmail: string;
-  formSubmittedDate: string; 
+  formSubmittedDate: string;
   quizCompleted: boolean;
   quizScore?: number;
   passedQuiz?: boolean;
@@ -79,9 +80,9 @@ export default function AdminDashboardPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
-  
+
   const [registeredUserCount, setRegisteredUserCount] = useState(0);
-  const [newApplicantsCount, setNewApplicantsCount] = useState(0); 
+  const [newApplicantsCount, setNewApplicantsCount] = useState(0);
   const [passedStudentsCount, setPassedStudentsCount] = useState(0);
   const [failedStudentsCount, setFailedStudentsCount] = useState(0);
   const [incomingMessagesCount, setIncomingMessagesCount] = useState(0);
@@ -91,12 +92,14 @@ export default function AdminDashboardPage() {
   const [adminInboxMessages, setAdminInboxMessages] = useState<AdminInboxMessage[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalContent, setModalContent] = useState<{
+  const [modalContent, setModalContent] = useState<
+  {
     title: string;
     data: RegisteredUser[] | StudentApplication[] | AdminInboxMessage[];
     type: 'users' | 'applications' | 'adminMessages';
     dataTypeKey: 'registeredUsers' | 'newApplicants' | 'passedStudents' | 'failedStudents' | 'incomingMessages';
-  } | null>(null);
+  } | null
+  >(null);
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'user' | 'application' | 'adminMessage' } | null>(null);
@@ -110,13 +113,13 @@ export default function AdminDashboardPage() {
     const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
     const storedUsersFromUserReg: any[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
     setRegisteredUserCount(storedUsersFromUserReg.length);
-    
+
     const formattedUsers: RegisteredUser[] = storedUsersFromUserReg.map((user: any) => ({
-      id: user.username, 
+      id: user.username,
       username: user.username,
       fullName: user.fullName,
-      registrationDate: user.registrationDate || new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toLocaleDateString('id-ID'), 
-      role: 'user', 
+      registrationDate: user.registrationDate || new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toLocaleDateString('id-ID'),
+      role: 'user',
     }));
     setDetailedRegisteredUsers(formattedUsers);
 
@@ -147,7 +150,7 @@ export default function AdminDashboardPage() {
       setIsAdminAuthenticated(true);
       loadData();
     } else {
-      router.push('/admin/login'); 
+      router.push('/admin/login');
     }
     setIsLoading(false);
   }, [router, loadData]);
@@ -170,7 +173,7 @@ export default function AdminDashboardPage() {
     } else if (type === 'adminMessages' && dataTypeKey === 'incomingMessages') {
         dataToShow = adminInboxMessages;
     }
-    setModalContent({ title, data: [...dataToShow], type, dataTypeKey }); 
+    setModalContent({ title, data: [...dataToShow], type, dataTypeKey });
     setIsModalOpen(true);
   };
 
@@ -184,7 +187,7 @@ export default function AdminDashboardPage() {
 
     if (itemToDelete.type === 'user') {
       const updatedUsers = detailedRegisteredUsers.filter(user => user.id !== itemToDelete.id);
-      localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedUsers.map(u => ({username: u.username, fullName: u.fullName, password: '***'})))); 
+      localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedUsers.map(u => ({username: u.username, fullName: u.fullName, password: '***'}))));
       setDetailedRegisteredUsers(updatedUsers);
       if (modalContent?.dataTypeKey === 'registeredUsers') {
         setModalContent(prev => prev ? {...prev, data: updatedUsers} : null);
@@ -194,7 +197,7 @@ export default function AdminDashboardPage() {
       const updatedApplications = detailedStudentApplications.filter(app => app.id !== itemToDelete.id);
       localStorage.setItem(STUDENT_APPLICATIONS_KEY, JSON.stringify(updatedApplications));
       setDetailedStudentApplications(updatedApplications);
-      
+
       if (modalContent?.type === 'applications') {
           let currentModalData: StudentApplication[] = [];
           if (modalContent.dataTypeKey === 'newApplicants') {
@@ -216,11 +219,11 @@ export default function AdminDashboardPage() {
       }
       toast({ title: "Pesan Dihapus", description: `Pesan dari pengguna telah dihapus.` });
     }
-    loadData(); 
+    loadData();
     setIsDeleteAlertOpen(false);
     setItemToDelete(null);
   };
-  
+
   const exportToCsv = (filename: string, dataToExport: any[]) => {
     if (!dataToExport || dataToExport.length === 0) {
       toast({ title: "Tidak Ada Data", description: "Tidak ada data untuk diekspor.", variant: "destructive" });
@@ -229,11 +232,15 @@ export default function AdminDashboardPage() {
 
     const headers = Object.keys(dataToExport[0]);
     const csvRows = [
-      headers.join(','), 
+      headers.join(','),
       ...dataToExport.map(row =>
         headers.map(fieldName => {
           let value = row[fieldName];
-          if (value === undefined || value === null) {
+          if (typeof value === 'boolean') {
+            value = value ? 'Ya' : 'Tidak';
+          } else if (value instanceof Date) {
+            value = format(value, 'yyyy-MM-dd HH:mm:ss');
+          } else if (value === undefined || value === null) {
             value = '';
           } else if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
             value = `"${value.replace(/"/g, '""')}"`;
@@ -242,7 +249,7 @@ export default function AdminDashboardPage() {
         }).join(',')
       )
     ];
-    
+
     const csvString = csvRows.join('\r\n');
     const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
@@ -309,7 +316,7 @@ export default function AdminDashboardPage() {
       userNotifications.push(newReplyNotification);
       localStorage.setItem(userNotificationsKey, JSON.stringify(userNotifications));
 
-      const updatedAdminMessages = adminInboxMessages.map(msg => 
+      const updatedAdminMessages = adminInboxMessages.map(msg =>
         msg.id === replyingToMessage.id ? { ...msg, isReplied: true } : msg
       );
       localStorage.setItem(ADMIN_INBOX_MESSAGES_KEY, JSON.stringify(updatedAdminMessages));
@@ -317,7 +324,7 @@ export default function AdminDashboardPage() {
       if (modalContent?.dataTypeKey === 'incomingMessages') {
         setModalContent(prev => prev ? {...prev, data: updatedAdminMessages} : null);
       }
-      
+
       toast({ title: "Balasan Terkirim", description: `Pesan balasan telah dikirim ke notifikasi untuk username: ${targetUserIdentifier}.` });
       setIsReplyModalOpen(false);
       setReplyingToMessage(null);
@@ -350,16 +357,17 @@ export default function AdminDashboardPage() {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Akun Pendaftar (Username)</TableHead> 
+          <TableHead>Akun Pendaftar (Username)</TableHead>
           <TableHead>NISN</TableHead>
           <TableHead>Nama</TableHead>
           <TableHead>JK</TableHead>
           <TableHead>Tmp/Tgl Lahir</TableHead>
           <TableHead>Agama</TableHead>
           <TableHead className="min-w-[200px]">Alamat</TableHead>
-          {/* No.HP Siswa column removed */}
           <TableHead>Asal Sekolah</TableHead>
           <TableHead>Ijazah</TableHead>
+          <TableHead>Kartu Keluarga</TableHead>
+          <TableHead>Ijazah/SKL</TableHead>
           <TableHead>Nama Ayah</TableHead>
           <TableHead>Pek. Ayah</TableHead>
           <TableHead>No.HP Ayah</TableHead>
@@ -375,16 +383,17 @@ export default function AdminDashboardPage() {
       <TableBody>
         {data.map((app) => (
           <TableRow key={app.id}>
-            <TableCell className="font-medium">{app.userUsername}</TableCell> 
+            <TableCell className="font-medium">{app.userUsername}</TableCell>
             <TableCell className="font-medium">{app.nisn}</TableCell>
             <TableCell>{app.fullName}</TableCell>
             <TableCell>{app.gender}</TableCell>
             <TableCell>{`${app.birthPlace}, ${new Date(app.birthDate).toLocaleDateString('id-ID')}`}</TableCell>
             <TableCell>{app.religion}</TableCell>
             <TableCell className="max-w-xs whitespace-pre-wrap break-words">{app.address}</TableCell>
-            {/* studentPhoneNumber TableCell removed */}
             <TableCell>{app.previousSchool}</TableCell>
             <TableCell>{app.lastCertificate}</TableCell>
+            <TableCell>{app.kartuKeluargaFileName || 'Tidak ada'}</TableCell>
+            <TableCell>{app.ijazahSklFileName || 'Tidak ada'}</TableCell>
             <TableCell>{app.fatherName}</TableCell>
             <TableCell>{app.fatherOccupation}</TableCell>
             <TableCell>{app.fatherPhoneNumber}</TableCell>
@@ -409,7 +418,7 @@ export default function AdminDashboardPage() {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Akun Pendaftar (Username)</TableHead> 
+          <TableHead>Akun Pendaftar (Username)</TableHead>
           <TableHead>NISN</TableHead>
           <TableHead>Nama Lengkap</TableHead>
           <TableHead>Tgl. Form</TableHead>
@@ -422,7 +431,7 @@ export default function AdminDashboardPage() {
       <TableBody>
         {(data as StudentApplication[]).map((app) => (
           <TableRow key={app.id}>
-            <TableCell className="font-medium">{app.userUsername}</TableCell> 
+            <TableCell className="font-medium">{app.userUsername}</TableCell>
             <TableCell className="font-medium">{app.nisn}</TableCell>
             <TableCell>{app.fullName}</TableCell>
             <TableCell>{new Date(app.formSubmittedDate).toLocaleDateString('id-ID')}</TableCell>
@@ -430,8 +439,8 @@ export default function AdminDashboardPage() {
             <TableCell>{app.quizScore !== undefined ? app.quizScore : '-'}</TableCell>
             <TableCell>
               {app.quizCompleted ? (
-                app.passedQuiz ? 
-                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Lulus</span> : 
+                app.passedQuiz ?
+                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700">Lulus</span> :
                 <span className="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-700">Tidak Lulus</span>
               ) : (
                 '-'
@@ -472,14 +481,14 @@ export default function AdminDashboardPage() {
             <TableCell>{msg.subject}</TableCell>
             <TableCell className="max-w-md whitespace-pre-wrap break-words">{msg.message}</TableCell>
              <TableCell>
-              {msg.isReplied ? 
-                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">Dibalas</span> : 
+              {msg.isReplied ?
+                <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">Dibalas</span> :
                 <span className="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700">Baru</span>
               }
             </TableCell>
             <TableCell className="space-x-1">
               <Button variant="outline" size="sm" onClick={() => handleOpenReplyModal(msg)} disabled={msg.isReplied || !msg.senderUsername}>
-                <Send className="mr-1 h-3 w-3" /> 
+                <Send className="mr-1 h-3 w-3" />
                 {msg.isReplied ? 'Telah Dibalas': (msg.senderUsername ? 'Balas User' : 'Tidak Bisa Dibalas')}
               </Button>
               <Button variant="ghost" size="icon" onClick={() => handleDeleteConfirmation(msg.id, 'adminMessage')}>
@@ -508,7 +517,7 @@ export default function AdminDashboardPage() {
       </Card>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 animate-fade-in-up animation-delay-300">
-        <Card 
+        <Card
           className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
           onClick={() => handleCardClick(
             "Detail Pengguna",
@@ -531,7 +540,7 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card 
+        <Card
           className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
           onClick={() => handleCardClick(
               "Detail Pendaftar (Tes Selesai)",
@@ -555,7 +564,7 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card 
+        <Card
           className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
           onClick={() => handleCardClick(
               "Detail Siswa Lulus Tes",
@@ -579,7 +588,7 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
 
-        <Card 
+        <Card
           className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
           onClick={() => handleCardClick(
               "Detail Siswa Tidak Lulus Tes",
@@ -602,7 +611,7 @@ export default function AdminDashboardPage() {
             </p>
           </CardContent>
         </Card>
-        <Card 
+        <Card
           className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
           onClick={() => handleCardClick(
               "Pesan Masuk dari Pengguna",
@@ -644,7 +653,7 @@ export default function AdminDashboardPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Username</TableHead> 
+                            <TableHead>Username</TableHead>
                             <TableHead>Nama Lengkap</TableHead>
                             <TableHead>Tgl. Registrasi</TableHead>
                             <TableHead>Peran</TableHead>
@@ -654,7 +663,7 @@ export default function AdminDashboardPage() {
                         <TableBody>
                           {(modalContent.data as RegisteredUser[]).map((user) => (
                             <TableRow key={user.id}>
-                              <TableCell className="font-medium">{user.username}</TableCell> 
+                              <TableCell className="font-medium">{user.username}</TableCell>
                               <TableCell>{user.fullName}</TableCell>
                               <TableCell>{user.registrationDate}</TableCell>
                               <TableCell>
@@ -674,11 +683,11 @@ export default function AdminDashboardPage() {
                     )}
                     {modalContent.type === 'applications' && (
                       (modalContent.dataTypeKey === "newApplicants" || modalContent.dataTypeKey === 'passedStudents' || modalContent.dataTypeKey === 'failedStudents') ?
-                        ( modalContent.dataTypeKey === "newApplicants" ? 
+                        ( modalContent.dataTypeKey === "newApplicants" ?
                             renderFullApplicationDetailsTable(modalContent.data as StudentApplication[]) :
                             renderQuizStatusTable(modalContent.data as StudentApplication[])
                         ) :
-                        renderFullApplicationDetailsTable(modalContent.data as StudentApplication[]) 
+                        renderFullApplicationDetailsTable(modalContent.data as StudentApplication[])
                     )}
                     {modalContent.type === 'adminMessages' && modalContent.dataTypeKey === 'incomingMessages' && (
                       renderAdminInboxTable(modalContent.data as AdminInboxMessage[])
@@ -686,14 +695,14 @@ export default function AdminDashboardPage() {
                   </>
                 ) : (
                   <div className="text-center py-10">
-                    <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+                    <FileArchive className="mx-auto h-12 w-12 text-muted-foreground" />
                     <p className="mt-4 text-muted-foreground">Tidak ada data untuk ditampilkan.</p>
                   </div>
                 )}
               </div>
               <DialogFooter className="mt-6 sm:justify-between">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => exportToCsv(`${modalContent.title.replace(/\s+/g, '_')}_export.csv`, modalContent.data)}
                   disabled={modalContent.data.length === 0}
                 >
@@ -747,8 +756,8 @@ export default function AdminDashboardPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsReplyModalOpen(false)}>Batal</Button>
-            <Button 
-              onClick={handleSendReply} 
+            <Button
+              onClick={handleSendReply}
               className="bg-primary hover:bg-primary/90 text-primary-foreground"
               disabled={!replyingToMessage?.senderUsername || !replyMessage.trim()}
             >
@@ -778,3 +787,5 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+    

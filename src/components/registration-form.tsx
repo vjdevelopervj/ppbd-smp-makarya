@@ -1,4 +1,3 @@
-
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,7 +23,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
+import { CalendarIcon, Loader2, ArrowLeft, ArrowRight, UploadCloud } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -36,19 +35,32 @@ import { sendRegistrationEmail } from '@/app/actions/registrationActions';
 
 const currentYear = new Date().getFullYear();
 
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf"];
+
+const fileSchema = z.any()
+  .refine((files) => files?.length === 1, "File harus diunggah.")
+  .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Ukuran file maksimal 5MB.`)
+  .refine(
+    (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
+    "Format file tidak didukung (Hanya JPG, PNG, PDF)."
+  ).optional();
+
+
 const registrationFormSchema = z.object({
   fullName: z.string().min(3, { message: 'Nama lengkap minimal 3 karakter.' }),
   nisn: z.string().length(10, { message: 'NISN harus 10 digit.' }).regex(/^\d+$/, { message: "NISN hanya boleh berisi angka." }),
   gender: z.enum(['Laki-laki', 'Perempuan'], { required_error: 'Jenis kelamin harus dipilih.' }),
   birthPlace: z.string().min(3, { message: 'Tempat lahir minimal 3 karakter.' }),
   birthDate: z.date({ required_error: 'Tanggal lahir harus diisi.' })
-    .max(new Date(currentYear - 10, 11, 31), { message: 'Usia calon siswa minimal 10 tahun.' }) // Example: at least 10 years old
-    .min(new Date(currentYear - 20, 0, 1), { message: 'Usia calon siswa maksimal 20 tahun.' }), // Example: at most 20 years old
+    .max(new Date(currentYear - 10, 11, 31), { message: 'Usia calon siswa minimal 10 tahun.' }) 
+    .min(new Date(currentYear - 20, 0, 1), { message: 'Usia calon siswa maksimal 20 tahun.' }), 
   religion: z.string().min(3, { message: 'Agama minimal 3 karakter.' }),
   address: z.string().min(10, { message: 'Alamat lengkap minimal 10 karakter.' }),
-  // studentPhoneNumber is removed
   previousSchool: z.string().min(3, { message: 'Asal sekolah minimal 3 karakter.' }),
   lastCertificate: z.enum(['SD/MI', 'Paket A'], { required_error: 'Ijazah terakhir harus dipilih.'}),
+  kartuKeluarga: fileSchema.refine(files => files?.length === 1, "Kartu Keluarga harus diunggah."),
+  ijazahSkl: fileSchema.refine(files => files?.length === 1, "Ijazah/SKL harus diunggah."),
   
   fatherName: z.string().min(3, { message: 'Nama ayah minimal 3 karakter.' }),
   fatherOccupation: z.string().min(3, { message: 'Pekerjaan ayah minimal 3 karakter.' }),
@@ -61,16 +73,16 @@ const registrationFormSchema = z.object({
 
 export type RegistrationFormData = z.infer<typeof registrationFormSchema>;
 
-// StudentApplicationDataToStore now omits studentPhoneNumber
-export interface StudentApplicationDataToStore extends Omit<RegistrationFormData, 'studentPhoneNumber'> {
+export interface StudentApplicationDataToStore extends Omit<RegistrationFormData, 'kartuKeluarga' | 'ijazahSkl'> {
   id: string; 
   userUsername: string;
   formSubmittedDate: string; 
   quizCompleted: boolean;
   quizScore?: number;
   passedQuiz?: boolean;
-  birthDate: string; // birthDate will be string here for storage
-  studentPhoneNumber?: string; // Keep it optional here if it might exist in old data, but not in new forms
+  birthDate: string; 
+  kartuKeluargaFileName?: string;
+  ijazahSklFileName?: string;
 }
 
 const STUDENT_APPLICATIONS_KEY = 'smpMakaryaStudentApplications';
@@ -90,7 +102,6 @@ export default function RegistrationForm() {
       birthPlace: '',
       religion: '',
       address: '',
-      // studentPhoneNumber: '', // Removed
       previousSchool: '',
       fatherName: '',
       fatherOccupation: '',
@@ -99,13 +110,16 @@ export default function RegistrationForm() {
       motherOccupation: '',
       motherPhoneNumber: '',
       parentEmail: '',
+      kartuKeluarga: undefined,
+      ijazahSkl: undefined,
     },
+     mode: "onTouched", // Validate on blur/touch
   });
 
-  // studentPhoneNumber removed from this list
   const studentFields: (keyof RegistrationFormData)[] = [
     'fullName', 'nisn', 'gender', 'birthPlace', 'birthDate', 
-    'religion', 'address', 'previousSchool', 'lastCertificate'
+    'religion', 'address', 'previousSchool', 'lastCertificate',
+    'kartuKeluarga', 'ijazahSkl'
   ];
 
   const handleNextStep = async () => {
@@ -114,10 +128,16 @@ export default function RegistrationForm() {
       setCurrentStep(2);
     } else {
       toast({
-        title: 'Data Belum Lengkap',
-        description: 'Mohon periksa kembali data calon siswa yang Anda isi.',
+        title: 'Data Belum Lengkap atau Tidak Valid',
+        description: 'Mohon periksa kembali data calon siswa dan dokumen yang Anda isi. Pastikan semua field yang wajib diisi dan format file sesuai.',
         variant: 'destructive',
+        duration: 7000,
       });
+       // Fokus pada field pertama yang error
+      const firstErrorField = Object.keys(form.formState.errors)[0] as keyof RegistrationFormData;
+      if (firstErrorField) {
+        form.setFocus(firstErrorField);
+      }
     }
   };
 
@@ -131,19 +151,27 @@ export default function RegistrationForm() {
     if (typeof window !== 'undefined') {
       loggedInUserUsername = localStorage.getItem('userUsername') || 'anonim'; 
     }
+    
+    const kartuKeluargaFile = data.kartuKeluarga?.[0];
+    const ijazahSklFile = data.ijazahSkl?.[0];
 
     // Create dataForEmail, explicitly excluding studentPhoneNumber if it somehow exists in 'data'
-    // though it shouldn't as it's removed from the form schema.
-    const { studentPhoneNumber, ...restOfData } = data;
     const dataForAction = {
-        ...restOfData,
+        ...data,
         birthDate: data.birthDate.toISOString(), 
-        userUsername: loggedInUserUsername
+        userUsername: loggedInUserUsername,
+        kartuKeluargaFileName: kartuKeluargaFile?.name,
+        ijazahSklFileName: ijazahSklFile?.name,
     };
+    // Remove FileList objects before sending to action if they exist
+    delete (dataForAction as any).kartuKeluarga;
+    delete (dataForAction as any).ijazahSkl;
 
 
     try {
-      const result = await sendRegistrationEmail(dataForAction);
+      // Type assertion for sendRegistrationEmail
+      const result = await sendRegistrationEmail(dataForAction as Parameters<typeof sendRegistrationEmail>[0]);
+
 
       if (result.success) {
         if (typeof window !== 'undefined') {
@@ -153,11 +181,19 @@ export default function RegistrationForm() {
           const existingApplicationIndex = applications.findIndex(app => app.nisn === data.nisn);
           
           const newApplicationData: StudentApplicationDataToStore = {
-            ...dataForAction, // Use dataForAction which omits studentPhoneNumber
+            ...data, // Original data from form
             id: data.nisn,
+            userUsername: loggedInUserUsername,
             formSubmittedDate: new Date().toISOString(),
+            birthDate: data.birthDate.toISOString(),
             quizCompleted: false, 
+            kartuKeluargaFileName: kartuKeluargaFile?.name,
+            ijazahSklFileName: ijazahSklFile?.name,
           };
+          // Remove FileList from data to be stored
+          delete (newApplicationData as any).kartuKeluarga;
+          delete (newApplicationData as any).ijazahSkl;
+
 
           if (existingApplicationIndex > -1) {
             applications[existingApplicationIndex] = {
@@ -349,7 +385,6 @@ export default function RegistrationForm() {
                 </FormItem>
               )}
             />
-            {/* studentPhoneNumber FormField removed */}
            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <FormField
@@ -387,6 +422,55 @@ export default function RegistrationForm() {
                 )}
               />
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <FormField
+                control={form.control}
+                name="kartuKeluarga"
+                render={({ field: { onChange, value, ...rest } }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center">
+                        <UploadCloud className="mr-2 h-5 w-5 text-primary" /> Kartu Keluarga (KK)
+                    </FormLabel>
+                    <FormControl>
+                        <Input 
+                        type="file" 
+                        onChange={(e) => onChange(e.target.files)}
+                        accept=".jpg, .jpeg, .png, .pdf"
+                        {...rest} 
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                        />
+                    </FormControl>
+                    <FormDescription>PDF, JPG, PNG (Maks. 5MB)</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="ijazahSkl"
+                render={({ field: { onChange, value, ...rest } }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center">
+                        <UploadCloud className="mr-2 h-5 w-5 text-primary" /> Ijazah/SKL Terakhir
+                    </FormLabel>
+                    <FormControl>
+                        <Input 
+                        type="file" 
+                        onChange={(e) => onChange(e.target.files)}
+                        accept=".jpg, .jpeg, .png, .pdf"
+                        {...rest}
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                        />
+                    </FormControl>
+                     <FormDescription>PDF, JPG, PNG (Maks. 5MB)</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+
             <Button type="button" onClick={handleNextStep} className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground">
               Selanjutnya (Data Orang Tua) <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
