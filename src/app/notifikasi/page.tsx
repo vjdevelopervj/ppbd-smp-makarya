@@ -8,6 +8,7 @@ import { Inbox, BellRing, KeyRound, FileText, Trash2, AlertTriangle, MessageSqua
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast'; // Added import
 
 export interface UserNotification {
   id: string;
@@ -25,6 +26,7 @@ export default function NotificationPage() {
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
   const [currentUserIdentifier, setCurrentUserIdentifier] = useState<string | null>(null); // To store username
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast(); // Correctly using the imported hook
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -113,8 +115,6 @@ export default function NotificationPage() {
     }
   };
   
-  // Added useToast import
-  const { toast } = useToast();
 
 
   if (isLoading) {
