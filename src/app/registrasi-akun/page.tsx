@@ -18,12 +18,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { UserPlus, User as UserIcon, KeyRound, CheckCircle, Mail } from 'lucide-react';
+import { UserPlus, User as UserIcon, KeyRound, CheckCircle } from 'lucide-react'; // Removed Mail icon
 import Link from 'next/link';
 
 const userRegistrationSchema = z.object({
   fullName: z.string().min(3, { message: 'Nama lengkap minimal 3 karakter.' }),
-  email: z.string().email({ message: 'Format email tidak valid.' }),
+  username: z.string().min(3, { message: 'Username minimal 3 karakter.' }), // Changed from email to username
   password: z.string().min(6, { message: 'Password minimal 6 karakter.' }),
   confirmPassword: z.string().min(6, { message: 'Konfirmasi password minimal 6 karakter.' }),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -44,7 +44,7 @@ export default function UserRegistrationPage() {
     resolver: zodResolver(userRegistrationSchema),
     defaultValues: {
       fullName: '',
-      email: '',
+      username: '', // Changed from email to username
       password: '',
       confirmPassword: '',
     },
@@ -57,11 +57,11 @@ export default function UserRegistrationPage() {
     const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
     const storedUsers: any[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
 
-    const existingUser = storedUsers.find(user => user.email === data.email);
+    const existingUser = storedUsers.find(user => user.username === data.username); // Check by username
     if (existingUser) {
       toast({
         title: 'Registrasi Gagal',
-        description: 'Email sudah digunakan. Silakan gunakan email lain.',
+        description: 'Username sudah digunakan. Silakan gunakan username lain.', // Updated message
         variant: 'destructive',
       });
       setIsSubmitting(false);
@@ -69,7 +69,7 @@ export default function UserRegistrationPage() {
     }
 
     const newUser = {
-      email: data.email,
+      username: data.username, // Store username
       fullName: data.fullName,
       password: data.password, 
     };
@@ -127,14 +127,14 @@ export default function UserRegistrationPage() {
               />
               <FormField
                 control={form.control}
-                name="email"
+                name="username" // Changed from email
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center">
-                      <Mail className="mr-2 h-5 w-5 text-primary" /> Email
+                      <UserIcon className="mr-2 h-5 w-5 text-primary" /> Username 
                     </FormLabel>
                     <FormControl>
-                      <Input type="email" placeholder="Masukkan email Anda (untuk login)" {...field} />
+                      <Input type="text" placeholder="Buat username unik Anda" {...field} /> 
                     </FormControl>
                     <FormMessage />
                   </FormItem>

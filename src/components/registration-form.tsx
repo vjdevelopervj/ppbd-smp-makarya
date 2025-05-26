@@ -59,13 +59,12 @@ export type RegistrationFormData = z.infer<typeof registrationFormSchema>;
 
 export interface StudentApplicationDataToStore extends RegistrationFormData {
   id: string; 
-  userEmail: string; 
+  userUsername: string; // Changed from userEmail to userUsername
   formSubmittedDate: string; 
   quizCompleted: boolean;
   quizScore?: number;
   passedQuiz?: boolean;
-  // birthDate will be string here for storage
-  birthDate: string;
+  birthDate: string; // birthDate will be string here for storage
 }
 
 const STUDENT_APPLICATIONS_KEY = 'smpMakaryaStudentApplications';
@@ -121,16 +120,16 @@ export default function RegistrationForm() {
 
   async function onSubmit(data: RegistrationFormData) {
     setIsSubmitting(true);
-    let loggedInUserEmail = '';
+    let loggedInUserUsername = ''; // Changed variable name
     if (typeof window !== 'undefined') {
-      loggedInUserEmail = localStorage.getItem('userEmail') || 'anonim'; 
+      loggedInUserUsername = localStorage.getItem('userUsername') || 'anonim'; // Get userUsername
     }
 
     try {
       const result = await sendRegistrationEmail({
         ...data,
-        birthDate: data.birthDate.toISOString(), // Send as string
-        userEmail: loggedInUserEmail 
+        birthDate: data.birthDate.toISOString(), 
+        userUsername: loggedInUserUsername // Pass userUsername
       });
 
       if (result.success) {
@@ -142,8 +141,8 @@ export default function RegistrationForm() {
           
           const newApplicationData: StudentApplicationDataToStore = {
             ...data,
-            userEmail: loggedInUserEmail, 
-            birthDate: data.birthDate.toISOString(), // Store as ISO string
+            userUsername: loggedInUserUsername, // Store userUsername
+            birthDate: data.birthDate.toISOString(), 
             id: data.nisn,
             formSubmittedDate: new Date().toISOString(),
             quizCompleted: false, 

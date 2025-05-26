@@ -37,20 +37,20 @@ function SetNewPasswordForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const email = searchParams.get('email'); // Changed from username to email
+  const username = searchParams.get('username'); // Changed from email to username
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userExists, setUserExists] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   useEffect(() => {
-    if (email) {
+    if (username) {
       const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
       const storedUsers: any[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
-      const foundUser = storedUsers.find((user: any) => user.email === email);
+      const foundUser = storedUsers.find((user: any) => user.username === username); // Check by username
       setUserExists(!!foundUser);
     }
     setIsLoadingUser(false);
-  }, [email]);
+  }, [username]);
 
   const form = useForm<NewPasswordFormData>({
     resolver: zodResolver(newPasswordSchema),
@@ -61,10 +61,10 @@ function SetNewPasswordForm() {
   });
 
   async function onSubmit(data: NewPasswordFormData) {
-    if (!email || !userExists) {
+    if (!username || !userExists) {
       toast({
         title: 'Error',
-        description: 'Email tidak valid atau tidak ditemukan. Tidak dapat mereset password.',
+        description: 'Username tidak valid atau tidak ditemukan. Tidak dapat mereset password.', // Updated message
         variant: 'destructive',
       });
       router.push('/');
@@ -77,7 +77,7 @@ function SetNewPasswordForm() {
     const storedUsersRaw = typeof window !== 'undefined' ? localStorage.getItem(REGISTERED_USERS_KEY) : null;
     let storedUsers: any[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
 
-    const userIndex = storedUsers.findIndex((user: any) => user.email === email);
+    const userIndex = storedUsers.findIndex((user: any) => user.username === username); // Find by username
     if (userIndex > -1) {
       storedUsers[userIndex].password = data.password; 
       if (typeof window !== 'undefined') {
@@ -99,7 +99,7 @@ function SetNewPasswordForm() {
     } else {
       toast({
         title: 'Update Password Gagal',
-        description: 'Email tidak ditemukan. Silakan coba lagi proses lupa password.',
+        description: 'Username tidak ditemukan. Silakan coba lagi proses lupa password.', // Updated message
         variant: 'destructive',
       });
     }
@@ -115,7 +115,7 @@ function SetNewPasswordForm() {
     );
   }
 
-  if (!email || !userExists) {
+  if (!username || !userExists) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-200px)] py-12">
         <Card className="w-full max-w-md text-center shadow-xl">
@@ -124,7 +124,7 @@ function SetNewPasswordForm() {
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground mb-4">
-              Link untuk mengatur ulang password tidak valid atau email tidak ditemukan.
+              Link untuk mengatur ulang password tidak valid atau username tidak ditemukan. 
             </p>
             <Button asChild className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground">
               <Link href="/">Kembali ke Halaman Utama</Link>
@@ -144,7 +144,7 @@ function SetNewPasswordForm() {
           </div>
           <CardTitle className="text-3xl font-bold text-primary">Atur Password Baru</CardTitle>
           <CardDescription className="text-muted-foreground">
-            Buat password baru untuk akun <span className="font-semibold">{email}</span>.
+            Buat password baru untuk akun <span className="font-semibold">{username}</span>.
           </CardDescription>
         </CardHeader>
         <CardContent className="p-6 space-y-6">

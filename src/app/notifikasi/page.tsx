@@ -15,9 +15,7 @@ export interface UserNotification {
   title: string;
   message?: string; 
   timestamp: string; // ISO string
-  payload?: any; // For examResult: { studentName, nisn, score, totalQuestions, isPassed }
-                  // For passwordReset: { resetLink }
-                  // For adminMessage: { originalSubject?, originalSender? }
+  payload?: any; 
   isRead?: boolean;
 }
 
@@ -25,38 +23,80 @@ const USER_NOTIFICATIONS_BASE_KEY = 'smpMakaryaUserNotifications_';
 
 export default function NotificationPage() {
   const [notifications, setNotifications] = useState<UserNotification[]>([]);
-  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null); // Changed to store email
+  const [currentUserIdentifier, setCurrentUserIdentifier] = useState<string | null>(null); // To store username
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const userEmail = localStorage.getItem('userEmail'); // This is the username/email
+      const userUsername = localStorage.getItem('userUsername'); // Get username
       const userRole = localStorage.getItem('userRole');
       
-      if (userEmail && userRole === 'user') {
-        setCurrentUserEmail(userEmail);
-        const notificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${userEmail}`;
-        const storedNotificationsRaw = localStorage.getItem(notificationsKey);
-        if (storedNotificationsRaw) {
+      if (userUsername && userRole === 'user') {
+        setCurrentUserIdentifier(userUsername);
+        // Load notifications keyed by username (for exam results, password resets)
+        const userNotificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${userUsername}`;
+        let userSpecificNotifications: UserNotification[] = [];
+        const storedUserNotificationsRaw = localStorage.getItem(userNotificationsKey);
+        if (storedUserNotificationsRaw) {
           try {
-            const parsedNotifications: UserNotification[] = JSON.parse(storedNotificationsRaw);
-            parsedNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-            setNotifications(parsedNotifications);
+            userSpecificNotifications = JSON.parse(storedUserNotificationsRaw);
           } catch (error) {
-            console.error("Error parsing notifications from localStorage:", error);
-            setNotifications([]);
+            console.error("Error parsing user-specific notifications from localStorage:", error);
           }
         }
+        
+        // Attempt to load notifications keyed by email (for admin replies to contact form)
+        // This assumes username might be an email, or user might want to see replies to their contact email here.
+        // This part can be complex if username is not an email. For simplicity, we'll assume
+        // if the username is also a valid email, it might try to fetch those.
+        // A more robust solution might require linking contact email to username if user is logged in when contacting.
+        let emailBasedNotifications: UserNotification[] = [];
+        // If the user's username happens to be an email, we might also check notifications for that key
+        // This is a simple check, not a guarantee it's an email
+        if (userUsername.includes('@')) { 
+          const emailNotificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${userUsername}`;
+          if (emailNotificationsKey !== userNotificationsKey) { // Avoid double loading if username is the key
+            const storedEmailNotificationsRaw = localStorage.getItem(emailNotificationsKey);
+            if (storedEmailNotificationsRaw) {
+              try {
+                emailBasedNotifications = JSON.parse(storedEmailNotificationsRaw);
+              } catch (error) {
+                console.error("Error parsing email-based notifications:", error);
+              }
+            }
+          }
+        }
+        
+        // Combine and sort notifications
+        const combinedNotifications = [...userSpecificNotifications, ...emailBasedNotifications];
+        // Deduplicate by ID if any overlap (though keys should be different unless username is an email)
+        const uniqueNotifications = Array.from(new Set(combinedNotifications.map(n => n.id)))
+          .map(id => combinedNotifications.find(n => n.id === id)!);
+          
+        uniqueNotifications.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setNotifications(uniqueNotifications);
+
       }
       setIsLoading(false);
     }
   }, []);
 
   const handleDeleteAllNotifications = () => {
-    if (typeof window !== 'undefined' && currentUserEmail) {
-      const notificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${currentUserEmail}`;
-      localStorage.removeItem(notificationsKey);
-      setNotifications([]);
+    if (typeof window !== 'undefined' && currentUserIdentifier) {
+      const userNotificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${currentUserIdentifier}`;
+      localStorage.removeItem(userNotificationsKey);
+      // Also consider removing email-keyed notifications if applicable and desired
+      // For now, just removing username-keyed ones.
+      setNotifications(notifications.filter(n => {
+        // This logic might need refinement if we want to clear email-keyed notifications too
+        // For now, it only clears notifications that would be loaded based on current logic
+        const notificationKeyForThisUser = `${USER_NOTIFICATIONS_BASE_KEY}${currentUserIdentifier}`;
+        // A bit of a simplification: if notification's key matches current user, remove it.
+        // This doesn't perfectly align with how they were loaded if username is not an email,
+        // but will clear the currently displayed ones associated with the username.
+        return localStorage.getItem(notificationKeyForThisUser) === null; 
+      }));
+       toast({ title: "Notifikasi Dihapus", description: "Semua notifikasi untuk " + currentUserIdentifier + " telah dihapus." });
     }
   };
 
@@ -67,11 +107,15 @@ export default function NotificationPage() {
       case 'passwordResetRequest':
         return <KeyRound className="h-5 w-5 mr-3 text-orange-500" />;
       case 'adminMessage':
-        return <MessageSquareReply className="h-5 w-5 mr-3 text-blue-500" />; // Changed icon
+        return <MessageSquareReply className="h-5 w-5 mr-3 text-blue-500" />;
       default:
         return <Inbox className="h-5 w-5 mr-3" />;
     }
   };
+  
+  // Added useToast import
+  const { toast } = useToast();
+
 
   if (isLoading) {
     return (
@@ -82,7 +126,7 @@ export default function NotificationPage() {
     );
   }
 
-  if (!currentUserEmail) {
+  if (!currentUserIdentifier) {
     return (
        <div className="flex justify-center items-center min-h-[calc(100vh-300px)] py-12">
         <Card className="w-full max-w-lg text-center shadow-xl animate-fade-in-up">
@@ -115,7 +159,7 @@ export default function NotificationPage() {
             <div>
               <CardTitle className="text-3xl font-bold text-primary">Pusat Notifikasi</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Semua pemberitahuan penting Anda akan muncul di sini.
+                Semua pemberitahuan penting Anda ({currentUserIdentifier}) akan muncul di sini.
               </CardDescription>
             </div>
           </div>
@@ -181,18 +225,6 @@ export default function NotificationPage() {
                   </div>
                 )}
               </CardContent>
-              {/* {notification.type !== 'passwordResetRequest' && !notification.isRead && (
-                <CardFooter>
-                  <Button variant="outline" size="sm" onClick={() => {
-                    // Mark as read logic (future)
-                    const updatedNotifications = notifications.map(n => n.id === notification.id ? {...n, isRead: true} : n);
-                    setNotifications(updatedNotifications);
-                    // Also update localStorage if persistence of read state is needed
-                  }}>
-                    Tandai Sudah Dibaca
-                  </Button>
-                </CardFooter>
-              )} */}
             </Card>
           ))}
         </div>

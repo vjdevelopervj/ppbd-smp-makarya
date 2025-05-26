@@ -3,10 +3,10 @@
 
 import type { StudentApplicationDataToStore } from '@/components/registration-form';
 
-// The data received by the action now includes 'userEmail' and birthDate as string
-export type RegistrationEmailData = Omit<StudentApplicationDataToStore, 'id' | 'formSubmittedDate' | 'quizCompleted' | 'quizScore' | 'passedQuiz' | 'birthDate'> & {
+// The data received by the action now includes 'userUsername' and birthDate as string
+export type RegistrationEmailData = Omit<StudentApplicationDataToStore, 'id' | 'formSubmittedDate' | 'quizCompleted' | 'quizScore' | 'passedQuiz' | 'birthDate' | 'userUsername'> & {
   birthDate: string; // birthDate is already a string here (ISO format from StudentApplicationDataToStore)
-  userEmail: string; // Changed from username to userEmail
+  userUsername: string; // Changed from userEmail to userUsername
 };
 
 
@@ -21,7 +21,7 @@ export async function sendRegistrationEmail(
   console.log('Subject: CALON SISWA/SISWI TELAH MENDAFTAR');
   console.log('Registration Data:', {
     ...formData,
-    userEmail: formData.userEmail, 
+    userUsername: formData.userUsername, 
     studentPhoneNumber: formData.studentPhoneNumber || 'Tidak diisi',
   });
 
@@ -40,7 +40,7 @@ export async function sendRegistrationEmail(
   //   html: \`
   //     <h1>Data Pendaftaran Siswa Baru</h1>
   //     <p>Seorang calon siswa/siswi baru telah mendaftar dengan data sebagai berikut:</p>
-  //     <p><strong>Akun Pendaftar (Email):</strong> \${formData.userEmail}</p>
+  //     <p><strong>Akun Pendaftar (Username):</strong> \${formData.userUsername}</p> 
   //     <h2>Data Siswa</h2>
   //     <p><strong>Nama Lengkap:</strong> \${formData.fullName}</p>
   //     <p><strong>NISN:</strong> \${formData.nisn}</p>

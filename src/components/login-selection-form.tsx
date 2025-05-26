@@ -25,24 +25,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { LogIn, User, Shield, KeyRound, Users, Mail } from 'lucide-react';
+import { LogIn, User, Shield, KeyRound, Users } from 'lucide-react'; // Removed Mail
 import Link from 'next/link';
 
-// Admin login schema
+// Admin login schema (remains the same, uses username)
 const adminLoginSchema = z.object({
   username: z.string().min(3, { message: 'Username admin minimal 3 karakter.' }),
   password: z.string().min(6, { message: 'Password admin minimal 6 karakter.' }),
 });
 
-// User login schema
+// User login schema - changed back to username
 const userLoginSchema = z.object({
-  email: z.string().email({ message: 'Format email tidak valid.' }),
+  username: z.string().min(3, { message: 'Username minimal 3 karakter.' }),
   password: z.string().min(6, { message: 'Password minimal 6 karakter.' }),
 });
 
 const loginSchema = z.object({
   role: z.enum(['admin', 'user'], { required_error: 'Peran harus dipilih.' }),
-  identifier: z.string().min(3, { message: 'Email/Username minimal 3 karakter.'}), // Combined field for email or admin username
+  identifier: z.string().min(3, { message: 'Username minimal 3 karakter.'}), // For admin username or user username
   password: z.string().min(6, { message: 'Password minimal 6 karakter.' }),
 });
 
@@ -70,8 +70,8 @@ export default function LoginSelectionForm() {
 
   useEffect(() => {
     setSelectedRole(roleValue);
-    form.setValue('identifier', ''); // Reset identifier when role changes
-    form.setValue('password', ''); // Reset password when role changes
+    form.setValue('identifier', ''); 
+    form.setValue('password', ''); 
     form.clearErrors();
   }, [roleValue, form]);
 
@@ -80,7 +80,8 @@ export default function LoginSelectionForm() {
     await new Promise((resolve) => setTimeout(resolve, 1000)); 
 
     if (data.role === 'admin') {
-      if (data.identifier === 'adminmakarya' && data.password === 'makarya123') {
+      // Admin login logic (using adminLoginSchema implicitly if needed for specific admin username validation)
+      if (data.identifier === 'adminmakarya' && data.password === 'makarya123') { // Example admin credentials
         if (typeof window !== 'undefined') {
           localStorage.setItem('isAdminSignedIn', 'true');
           localStorage.setItem('userRole', 'admin'); 
@@ -103,9 +104,10 @@ export default function LoginSelectionForm() {
         });
       }
     } else if (data.role === 'user') {
-      const validationResult = userLoginSchema.safeParse({ email: data.identifier, password: data.password });
+      // User login logic, validating against userLoginSchema (username)
+      const validationResult = userLoginSchema.safeParse({ username: data.identifier, password: data.password });
       if (!validationResult.success) {
-          form.setError('identifier', { type: 'manual', message: validationResult.error.errors.find(e => e.path.includes('email'))?.message || 'Email tidak valid.' });
+          form.setError('identifier', { type: 'manual', message: validationResult.error.errors.find(e => e.path.includes('username'))?.message || 'Username tidak valid.' });
           if (validationResult.error.errors.find(e => e.path.includes('password'))) {
             form.setError('password', { type: 'manual', message: validationResult.error.errors.find(e => e.path.includes('password'))?.message });
           }
@@ -117,13 +119,13 @@ export default function LoginSelectionForm() {
       const storedUsers: any[] = storedUsersRaw ? JSON.parse(storedUsersRaw) : [];
       
       const foundUser = storedUsers.find(
-        (user: any) => user.email === data.identifier && user.password === data.password
+        (user: any) => user.username === data.identifier && user.password === data.password // Check by username
       );
 
       if (foundUser) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('isUserSignedIn', 'true');
-          localStorage.setItem('userEmail', foundUser.email); 
+          localStorage.setItem('userUsername', foundUser.username); // Store username
           localStorage.setItem('userFullName', foundUser.fullName); 
           localStorage.setItem('userRole', 'user'); 
           window.dispatchEvent(new CustomEvent('authChange'));
@@ -144,7 +146,7 @@ export default function LoginSelectionForm() {
       } else {
          toast({
           title: 'User Login Gagal',
-          description: 'Email atau password user salah.',
+          description: 'Username atau password user salah.', // Updated message
           variant: 'destructive',
         });
       }
@@ -175,7 +177,7 @@ export default function LoginSelectionForm() {
                     <FormLabel className="flex items-center">
                       <Users className="mr-2 h-5 w-5 text-primary" /> Pilih Peran
                     </FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Pilih peran Anda" />
@@ -204,13 +206,13 @@ export default function LoginSelectionForm() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center">
-                      {selectedRole === 'admin' ? <User className="mr-2 h-5 w-5 text-primary" /> : <Mail className="mr-2 h-5 w-5 text-primary" /> }
-                      {selectedRole === 'admin' ? 'Username Admin' : 'Email User'}
+                      <User className="mr-2 h-5 w-5 text-primary" /> 
+                      {selectedRole === 'admin' ? 'Username Admin' : 'Username User'}
                     </FormLabel>
                     <FormControl>
                       <Input 
-                        type={selectedRole === 'admin' ? 'text' : 'email'} 
-                        placeholder={selectedRole === 'admin' ? 'Masukkan username admin' : 'Masukkan email Anda'} 
+                        type="text" // Changed from email to text for user
+                        placeholder={selectedRole === 'admin' ? 'Masukkan username admin' : 'Masukkan username Anda'} 
                         {...field} 
                         disabled={!selectedRole}
                       />

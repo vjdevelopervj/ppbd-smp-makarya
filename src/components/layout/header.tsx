@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export default function Header() {
-  const [isUserSignedIn, setIsUserSignedIn] = useState(false); // Generic signed-in state
+  const [isUserSignedIn, setIsUserSignedIn] = useState(false); 
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const router = useRouter();
@@ -26,7 +26,7 @@ export default function Header() {
     const updateAuthState = () => {
       if (typeof window !== 'undefined') {
         const adminSignedIn = localStorage.getItem('isAdminSignedIn') === 'true';
-        const regularUserSignedIn = localStorage.getItem('isUserSignedIn') === 'true'; // This is for regular users
+        const regularUserSignedIn = localStorage.getItem('isUserSignedIn') === 'true';
         const storedRole = localStorage.getItem('userRole');
         setUserRole(storedRole);
 
@@ -37,7 +37,7 @@ export default function Header() {
         } else if (regularUserSignedIn && storedRole === 'user') {
           setIsUserSignedIn(true);
           const fullName = localStorage.getItem('userFullName');
-          const username = localStorage.getItem('userEmail'); // This stores the username
+          const username = localStorage.getItem('userUsername'); // Get userUsername
           setUserDisplayName(fullName || username || 'User');
         } else {
           setIsUserSignedIn(false);
@@ -60,10 +60,10 @@ export default function Header() {
 
   const handleSignOut = () => {
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('isUserSignedIn'); // For regular users
-      localStorage.removeItem('userEmail');
+      localStorage.removeItem('isUserSignedIn'); 
+      localStorage.removeItem('userUsername'); // Remove userUsername
       localStorage.removeItem('userFullName');
-      localStorage.removeItem('isAdminSignedIn'); // For admin
+      localStorage.removeItem('isAdminSignedIn'); 
       localStorage.removeItem('adminUsername');
       localStorage.removeItem('userRole');
       window.dispatchEvent(new CustomEvent('authChange'));

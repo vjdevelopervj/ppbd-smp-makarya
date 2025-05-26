@@ -8,8 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX, Trash2, Download, MessageSquareText, Send, UserCog } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input'; // Not used, but Label is
+import { Label } from '@/components/ui/label'; // Make sure Label is imported
 import {
   Dialog,
   DialogContent,
@@ -36,8 +36,8 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
 interface RegisteredUser {
-  id: string; // email
-  email: string;
+  id: string; // username
+  username: string;
   fullName: string;
   registrationDate: string; 
   role: string;
@@ -45,7 +45,7 @@ interface RegisteredUser {
 
 interface StudentApplication {
   id: string; // NISN
-  userEmail: string; // Email of the account that registered this student
+  userUsername: string; // Username of the account that registered this student
   fullName: string;
   nisn: string;
   gender: string;
@@ -113,8 +113,8 @@ export default function AdminDashboardPage() {
     setRegisteredUserCount(storedUsersFromUserReg.length);
     
     const formattedUsers: RegisteredUser[] = storedUsersFromUserReg.map((user: any) => ({
-      id: user.email, 
-      email: user.email,
+      id: user.username, // Use username as id
+      username: user.username,
       fullName: user.fullName,
       registrationDate: user.registrationDate || new Date(Date.now() - Math.random() * 1000 * 60 * 60 * 24 * 7).toLocaleDateString('id-ID'), 
       role: 'user', 
@@ -185,13 +185,13 @@ export default function AdminDashboardPage() {
 
     if (itemToDelete.type === 'user') {
       const updatedUsers = detailedRegisteredUsers.filter(user => user.id !== itemToDelete.id);
-      // Assuming id is email for users
-      localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedUsers.map(u => ({email: u.email, fullName: u.fullName, password: '***'})))); 
+      // Assuming id is username for users
+      localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(updatedUsers.map(u => ({username: u.username, fullName: u.fullName, password: '***'})))); 
       setDetailedRegisteredUsers(updatedUsers);
       if (modalContent?.dataTypeKey === 'registeredUsers') {
         setModalContent(prev => prev ? {...prev, data: updatedUsers} : null);
       }
-      toast({ title: "Pengguna Dihapus", description: `Pengguna dengan email ${itemToDelete.id} telah dihapus.` });
+      toast({ title: "Pengguna Dihapus", description: `Pengguna dengan username ${itemToDelete.id} telah dihapus.` });
     } else if (itemToDelete.type === 'application') {
       const updatedApplications = detailedStudentApplications.filter(app => app.id !== itemToDelete.id);
       localStorage.setItem(STUDENT_APPLICATIONS_KEY, JSON.stringify(updatedApplications));
@@ -276,6 +276,7 @@ export default function AdminDashboardPage() {
     }
 
     if (typeof window !== 'undefined') {
+      // Notifications for user replies are keyed by the email from the contact form.
       const userNotificationsKey = `${USER_NOTIFICATIONS_BASE_KEY}${replyingToMessage.fromEmail}`;
       let userNotifications: UserNotification[] = [];
       const storedNotificationsRaw = localStorage.getItem(userNotificationsKey);
@@ -306,7 +307,7 @@ export default function AdminDashboardPage() {
         setModalContent(prev => prev ? {...prev, data: updatedAdminMessages} : null);
       }
       
-      toast({ title: "Balasan Terkirim", description: `Pesan balasan telah dikirim ke notifikasi ${replyingToMessage.fromName}.` });
+      toast({ title: "Balasan Terkirim", description: `Pesan balasan telah dikirim ke notifikasi untuk ${replyingToMessage.fromEmail}.` });
       setIsReplyModalOpen(false);
       setReplyingToMessage(null);
       setReplyMessage('');
@@ -338,7 +339,7 @@ export default function AdminDashboardPage() {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Akun Pendaftar (Email)</TableHead>
+          <TableHead>Akun Pendaftar (Username)</TableHead> 
           <TableHead>NISN</TableHead>
           <TableHead>Nama</TableHead>
           <TableHead>JK</TableHead>
@@ -363,7 +364,7 @@ export default function AdminDashboardPage() {
       <TableBody>
         {data.map((app) => (
           <TableRow key={app.id}>
-            <TableCell className="font-medium">{app.userEmail}</TableCell>
+            <TableCell className="font-medium">{app.userUsername}</TableCell> 
             <TableCell className="font-medium">{app.nisn}</TableCell>
             <TableCell>{app.fullName}</TableCell>
             <TableCell>{app.gender}</TableCell>
@@ -397,7 +398,7 @@ export default function AdminDashboardPage() {
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Akun Pendaftar (Email)</TableHead>
+          <TableHead>Akun Pendaftar (Username)</TableHead> 
           <TableHead>NISN</TableHead>
           <TableHead>Nama Lengkap</TableHead>
           <TableHead>Tgl. Form</TableHead>
@@ -410,7 +411,7 @@ export default function AdminDashboardPage() {
       <TableBody>
         {(data as StudentApplication[]).map((app) => (
           <TableRow key={app.id}>
-            <TableCell className="font-medium">{app.userEmail}</TableCell>
+            <TableCell className="font-medium">{app.userUsername}</TableCell> 
             <TableCell className="font-medium">{app.nisn}</TableCell>
             <TableCell>{app.fullName}</TableCell>
             <TableCell>{new Date(app.formSubmittedDate).toLocaleDateString('id-ID')}</TableCell>
@@ -629,7 +630,7 @@ export default function AdminDashboardPage() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Email</TableHead>
+                            <TableHead>Username</TableHead> 
                             <TableHead>Nama Lengkap</TableHead>
                             <TableHead>Tgl. Registrasi</TableHead>
                             <TableHead>Peran</TableHead>
@@ -639,7 +640,7 @@ export default function AdminDashboardPage() {
                         <TableBody>
                           {(modalContent.data as RegisteredUser[]).map((user) => (
                             <TableRow key={user.id}>
-                              <TableCell className="font-medium">{user.email}</TableCell>
+                              <TableCell className="font-medium">{user.username}</TableCell> 
                               <TableCell>{user.fullName}</TableCell>
                               <TableCell>{user.registrationDate}</TableCell>
                               <TableCell>
@@ -658,9 +659,12 @@ export default function AdminDashboardPage() {
                       </Table>
                     )}
                     {modalContent.type === 'applications' && (
-                      (modalContent.dataTypeKey === "newApplicants") ?
-                        renderFullApplicationDetailsTable(modalContent.data as StudentApplication[]) :
-                        renderQuizStatusTable(modalContent.data as StudentApplication[])
+                      (modalContent.dataTypeKey === "newApplicants" || modalContent.dataTypeKey === 'passedStudents' || modalContent.dataTypeKey === 'failedStudents') ?
+                        ( modalContent.dataTypeKey === "newApplicants" ? 
+                            renderFullApplicationDetailsTable(modalContent.data as StudentApplication[]) :
+                            renderQuizStatusTable(modalContent.data as StudentApplication[])
+                        ) :
+                        renderFullApplicationDetailsTable(modalContent.data as StudentApplication[]) // Fallback, should ideally not happen
                     )}
                     {modalContent.type === 'adminMessages' && modalContent.dataTypeKey === 'incomingMessages' && (
                       renderAdminInboxTable(modalContent.data as AdminInboxMessage[])
@@ -696,7 +700,7 @@ export default function AdminDashboardPage() {
           <DialogHeader>
             <DialogTitle>Balas Pesan dari: {replyingToMessage?.fromName}</DialogTitle>
             <DialogDescription>
-              Kirim balasan ke email: {replyingToMessage?.fromEmail} (Notifikasi akan muncul di akun pengguna)
+              Kirim balasan ke email: {replyingToMessage?.fromEmail} (Notifikasi akan muncul di akun pengguna jika email sesuai dengan username terdaftar)
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
