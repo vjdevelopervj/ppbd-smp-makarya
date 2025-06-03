@@ -5,7 +5,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX, Trash2, Download, MessageSquareText, Send, UserCog, FileArchive } from 'lucide-react';
+import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX, Trash2, Download, MessageSquareText, Send, UserCog, FileArchive, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -56,6 +56,7 @@ interface StudentApplication {
   lastCertificate: string;
   kartuKeluargaFileName?: string;
   ijazahSklFileName?: string;
+  studentPhotoFileName?: string;
   fatherName: string;
   fatherOccupation: string;
   fatherPhoneNumber: string;
@@ -368,6 +369,7 @@ export default function AdminDashboardPage() {
           <TableHead>Ijazah</TableHead>
           <TableHead>Kartu Keluarga</TableHead>
           <TableHead>Ijazah/SKL</TableHead>
+          <TableHead>Foto 3x4</TableHead>
           <TableHead>Nama Ayah</TableHead>
           <TableHead>Pek. Ayah</TableHead>
           <TableHead>No.HP Ayah</TableHead>
@@ -394,6 +396,7 @@ export default function AdminDashboardPage() {
             <TableCell>{app.lastCertificate}</TableCell>
             <TableCell>{app.kartuKeluargaFileName || 'Tidak ada'}</TableCell>
             <TableCell>{app.ijazahSklFileName || 'Tidak ada'}</TableCell>
+            <TableCell>{app.studentPhotoFileName || 'Tidak ada'}</TableCell>
             <TableCell>{app.fatherName}</TableCell>
             <TableCell>{app.fatherOccupation}</TableCell>
             <TableCell>{app.fatherPhoneNumber}</TableCell>

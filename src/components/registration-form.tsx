@@ -1,3 +1,4 @@
+
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,6 +38,8 @@ const currentYear = new Date().getFullYear();
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ["image/jpeg", "image/png", "application/pdf"];
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png"];
+
 
 const fileSchema = z.any()
   .refine((files) => files?.length === 1, "File harus diunggah.")
@@ -44,6 +47,14 @@ const fileSchema = z.any()
   .refine(
     (files) => ACCEPTED_FILE_TYPES.includes(files?.[0]?.type),
     "Format file tidak didukung (Hanya JPG, PNG, PDF)."
+  ).optional();
+
+const imageFileSchema = z.any()
+  .refine((files) => files?.length === 1, "Foto harus diunggah.")
+  .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Ukuran foto maksimal 5MB.`)
+  .refine(
+    (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
+    "Format foto tidak didukung (Hanya JPG, PNG)."
   ).optional();
 
 
@@ -61,6 +72,7 @@ const registrationFormSchema = z.object({
   lastCertificate: z.enum(['SD/MI', 'Paket A'], { required_error: 'Ijazah terakhir harus dipilih.'}),
   kartuKeluarga: fileSchema.refine(files => files?.length === 1, "Kartu Keluarga harus diunggah."),
   ijazahSkl: fileSchema.refine(files => files?.length === 1, "Ijazah/SKL harus diunggah."),
+  studentPhoto: imageFileSchema.refine(files => files?.length === 1, "Foto siswa 3x4 harus diunggah."),
   
   fatherName: z.string().min(3, { message: 'Nama ayah minimal 3 karakter.' }),
   fatherOccupation: z.string().min(3, { message: 'Pekerjaan ayah minimal 3 karakter.' }),
@@ -73,7 +85,7 @@ const registrationFormSchema = z.object({
 
 export type RegistrationFormData = z.infer<typeof registrationFormSchema>;
 
-export interface StudentApplicationDataToStore extends Omit<RegistrationFormData, 'kartuKeluarga' | 'ijazahSkl'> {
+export interface StudentApplicationDataToStore extends Omit<RegistrationFormData, 'kartuKeluarga' | 'ijazahSkl' | 'studentPhoto'> {
   id: string; 
   userUsername: string;
   formSubmittedDate: string; 
@@ -83,6 +95,7 @@ export interface StudentApplicationDataToStore extends Omit<RegistrationFormData
   birthDate: string; 
   kartuKeluargaFileName?: string;
   ijazahSklFileName?: string;
+  studentPhotoFileName?: string;
 }
 
 const STUDENT_APPLICATIONS_KEY = 'smpMakaryaStudentApplications';
@@ -112,14 +125,15 @@ export default function RegistrationForm() {
       parentEmail: '',
       kartuKeluarga: undefined,
       ijazahSkl: undefined,
+      studentPhoto: undefined,
     },
-     mode: "onTouched", // Validate on blur/touch
+     mode: "onTouched",
   });
 
   const studentFields: (keyof RegistrationFormData)[] = [
     'fullName', 'nisn', 'gender', 'birthPlace', 'birthDate', 
     'religion', 'address', 'previousSchool', 'lastCertificate',
-    'kartuKeluarga', 'ijazahSkl'
+    'kartuKeluarga', 'ijazahSkl', 'studentPhoto'
   ];
 
   const handleNextStep = async () => {
@@ -133,7 +147,6 @@ export default function RegistrationForm() {
         variant: 'destructive',
         duration: 7000,
       });
-       // Fokus pada field pertama yang error
       const firstErrorField = Object.keys(form.formState.errors)[0] as keyof RegistrationFormData;
       if (firstErrorField) {
         form.setFocus(firstErrorField);
@@ -154,24 +167,23 @@ export default function RegistrationForm() {
     
     const kartuKeluargaFile = data.kartuKeluarga?.[0];
     const ijazahSklFile = data.ijazahSkl?.[0];
+    const studentPhotoFile = data.studentPhoto?.[0];
 
-    // Create dataForEmail, explicitly excluding studentPhoneNumber if it somehow exists in 'data'
     const dataForAction = {
         ...data,
         birthDate: data.birthDate.toISOString(), 
         userUsername: loggedInUserUsername,
         kartuKeluargaFileName: kartuKeluargaFile?.name,
         ijazahSklFileName: ijazahSklFile?.name,
+        studentPhotoFileName: studentPhotoFile?.name,
     };
-    // Remove FileList objects before sending to action if they exist
     delete (dataForAction as any).kartuKeluarga;
     delete (dataForAction as any).ijazahSkl;
+    delete (dataForAction as any).studentPhoto;
 
 
     try {
-      // Type assertion for sendRegistrationEmail
       const result = await sendRegistrationEmail(dataForAction as Parameters<typeof sendRegistrationEmail>[0]);
-
 
       if (result.success) {
         if (typeof window !== 'undefined') {
@@ -181,7 +193,7 @@ export default function RegistrationForm() {
           const existingApplicationIndex = applications.findIndex(app => app.nisn === data.nisn);
           
           const newApplicationData: StudentApplicationDataToStore = {
-            ...data, // Original data from form
+            ...data, 
             id: data.nisn,
             userUsername: loggedInUserUsername,
             formSubmittedDate: new Date().toISOString(),
@@ -189,10 +201,11 @@ export default function RegistrationForm() {
             quizCompleted: false, 
             kartuKeluargaFileName: kartuKeluargaFile?.name,
             ijazahSklFileName: ijazahSklFile?.name,
+            studentPhotoFileName: studentPhotoFile?.name,
           };
-          // Remove FileList from data to be stored
           delete (newApplicationData as any).kartuKeluarga;
           delete (newApplicationData as any).ijazahSkl;
+          delete (newApplicationData as any).studentPhoto;
 
 
           if (existingApplicationIndex > -1) {
@@ -469,6 +482,29 @@ export default function RegistrationForm() {
                 )}
               />
             </div>
+            
+            <FormField
+                control={form.control}
+                name="studentPhoto"
+                render={({ field: { onChange, value, ...rest } }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center">
+                        <UploadCloud className="mr-2 h-5 w-5 text-primary" /> Foto Siswa (3x4)
+                    </FormLabel>
+                    <FormControl>
+                        <Input 
+                        type="file" 
+                        onChange={(e) => onChange(e.target.files)}
+                        accept="image/jpeg, image/png"
+                        {...rest}
+                        className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20"
+                        />
+                    </FormControl>
+                     <FormDescription>JPG, PNG (Maks. 5MB)</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+            />
 
 
             <Button type="button" onClick={handleNextStep} className="w-full bg-secondary hover:bg-secondary/80 text-secondary-foreground">
@@ -600,3 +636,5 @@ export default function RegistrationForm() {
     </Form>
   );
 }
+
+    
