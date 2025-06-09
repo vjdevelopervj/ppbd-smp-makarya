@@ -22,17 +22,18 @@ export default function HomePage() {
       setIsAuthenticated(updatedSignedIn === 'true');
     };
 
-    window.addEventListener('authChange', handleAuthChange);
-    // Also check on storage event for cross-tab consistency
-    window.addEventListener('storage', (event) => {
+    const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'isUserSignedIn') {
         setIsAuthenticated(event.newValue === 'true');
       }
-    });
+    };
+
+    window.addEventListener('authChange', handleAuthChange);
+    window.addEventListener('storage', handleStorageChange);
     
     return () => {
       window.removeEventListener('authChange', handleAuthChange);
-      window.removeEventListener('storage', handleAuthChange);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
