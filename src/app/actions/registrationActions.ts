@@ -4,13 +4,13 @@
 import type { StudentApplicationDataToStore } from '@/components/registration-form';
 
 // The data received by the action now includes 'userUsername' and birthDate as string
-// It also includes optional file names for KK, Ijazah/SKL, and studentPhoto.
+// It also includes optional file names for KK, Ijazah/SKL, and the student photo as a Data URI.
 export type RegistrationEmailData = Omit<StudentApplicationDataToStore, 'id' | 'formSubmittedDate' | 'quizCompleted' | 'quizScore' | 'passedQuiz' | 'birthDate' | 'userUsername'> & {
   birthDate: string; 
   userUsername: string; 
   kartuKeluargaFileName?: string;
   ijazahSklFileName?: string;
-  studentPhotoFileName?: string;
+  studentPhotoDataUri?: string;
 };
 
 
@@ -28,7 +28,7 @@ export async function sendRegistrationEmail(
     userUsername: formData.userUsername,
     kartuKeluargaFileName: formData.kartuKeluargaFileName || 'Tidak diunggah',
     ijazahSklFileName: formData.ijazahSklFileName || 'Tidak diunggah',
-    studentPhotoFileName: formData.studentPhotoFileName || 'Tidak diunggah',
+    studentPhotoDataUri: formData.studentPhotoDataUri ? 'Foto telah diunggah' : 'Tidak diunggah',
   });
 
   // Simulate email sending process
@@ -58,7 +58,7 @@ export async function sendRegistrationEmail(
   //     <p><strong>Ijazah Terakhir:</strong> \${formData.lastCertificate}</p>
   //     <p><strong>File Kartu Keluarga:</strong> \${formData.kartuKeluargaFileName || 'Tidak diunggah'}</p>
   //     <p><strong>File Ijazah/SKL:</strong> \${formData.ijazahSklFileName || 'Tidak diunggah'}</p>
-  //     <p><strong>File Foto Siswa:</strong> \${formData.studentPhotoFileName || 'Tidak diunggah'}</p>
+  //     <p><strong>File Foto Siswa:</strong> \${formData.studentPhotoDataUri ? 'Telah diunggah' : 'Tidak diunggah'}</p>
   //     <h2>Data Orang Tua</h2>
   //     <p><strong>Nama Ayah:</strong> \${formData.fatherName}</p>
   //     <p><strong>Pekerjaan Ayah:</strong> \${formData.fatherOccupation}</p>
@@ -82,5 +82,3 @@ export async function sendRegistrationEmail(
 
   return { success: true, message: 'Email sent successfully (simulated)' };
 }
-
-    

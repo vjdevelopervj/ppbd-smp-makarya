@@ -3,6 +3,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Database, Users, ShieldAlert, UserPlus, FileText, UserCheck, UserX, Trash2, Download, MessageSquareText, Send, UserCog, FileArchive, Image as ImageIcon } from 'lucide-react';
@@ -56,7 +57,7 @@ interface StudentApplication {
   lastCertificate: string;
   kartuKeluargaFileName?: string;
   ijazahSklFileName?: string;
-  studentPhotoFileName?: string;
+  studentPhotoDataUri?: string;
   fatherName: string;
   fatherOccupation: string;
   fatherPhoneNumber: string;
@@ -230,11 +231,21 @@ export default function AdminDashboardPage() {
       toast({ title: "Tidak Ada Data", description: "Tidak ada data untuk diekspor.", variant: "destructive" });
       return;
     }
+    
+    // Create a copy to avoid modifying original data
+    const dataWithFilteredColumns = dataToExport.map(item => {
+        const newItem = {...item};
+        // Remove data URI from CSV export to keep it clean
+        if (newItem.studentPhotoDataUri) {
+            newItem.studentPhotoDataUri = 'Uploaded';
+        }
+        return newItem;
+    });
 
-    const headers = Object.keys(dataToExport[0]);
+    const headers = Object.keys(dataWithFilteredColumns[0]);
     const csvRows = [
       headers.join(','),
-      ...dataToExport.map(row =>
+      ...dataWithFilteredColumns.map(row =>
         headers.map(fieldName => {
           let value = row[fieldName];
           if (typeof value === 'boolean') {
@@ -369,7 +380,7 @@ export default function AdminDashboardPage() {
           <TableHead>Ijazah</TableHead>
           <TableHead>Kartu Keluarga</TableHead>
           <TableHead>Ijazah/SKL</TableHead>
-          <TableHead>Foto 3x4</TableHead>
+          <TableHead>Foto Siswa</TableHead>
           <TableHead>Nama Ayah</TableHead>
           <TableHead>Pek. Ayah</TableHead>
           <TableHead>No.HP Ayah</TableHead>
@@ -396,7 +407,19 @@ export default function AdminDashboardPage() {
             <TableCell>{app.lastCertificate}</TableCell>
             <TableCell>{app.kartuKeluargaFileName || 'Tidak ada'}</TableCell>
             <TableCell>{app.ijazahSklFileName || 'Tidak ada'}</TableCell>
-            <TableCell>{app.studentPhotoFileName || 'Tidak ada'}</TableCell>
+            <TableCell>
+              {app.studentPhotoDataUri ? (
+                <Image
+                  src={app.studentPhotoDataUri}
+                  alt={`Foto ${app.fullName}`}
+                  width={40}
+                  height={53}
+                  className="rounded-md object-cover"
+                />
+              ) : (
+                'Tidak ada'
+              )}
+            </TableCell>
             <TableCell>{app.fatherName}</TableCell>
             <TableCell>{app.fatherOccupation}</TableCell>
             <TableCell>{app.fatherPhoneNumber}</TableCell>
@@ -790,5 +813,3 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
-
-    

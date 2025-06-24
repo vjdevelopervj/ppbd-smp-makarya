@@ -95,7 +95,7 @@ export interface StudentApplicationDataToStore extends Omit<RegistrationFormData
   birthDate: string; 
   kartuKeluargaFileName?: string;
   ijazahSklFileName?: string;
-  studentPhotoFileName?: string;
+  studentPhotoDataUri?: string;
 }
 
 const STUDENT_APPLICATIONS_KEY = 'smpMakaryaStudentApplications';
@@ -160,6 +160,15 @@ export default function RegistrationForm() {
 
   async function onSubmit(data: RegistrationFormData) {
     setIsSubmitting(true);
+    
+    const toDataURL = (file: File): Promise<string> =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = error => reject(error);
+      });
+
     let loggedInUserUsername = ''; 
     if (typeof window !== 'undefined') {
       loggedInUserUsername = localStorage.getItem('userUsername') || 'anonim'; 
@@ -169,21 +178,36 @@ export default function RegistrationForm() {
     const ijazahSklFile = data.ijazahSkl?.[0];
     const studentPhotoFile = data.studentPhoto?.[0];
 
+    let studentPhotoDataUri: string | undefined;
+    if (studentPhotoFile) {
+        try {
+            studentPhotoDataUri = await toDataURL(studentPhotoFile);
+        } catch (error) {
+            console.error("Error converting file to Data URI", error);
+            toast({
+                title: "Gagal memproses foto",
+                description: "Terjadi kesalahan saat mengolah file foto Anda. Silakan coba lagi.",
+                variant: "destructive"
+            });
+            setIsSubmitting(false);
+            return;
+        }
+    }
+
     const dataForAction = {
         ...data,
         birthDate: data.birthDate.toISOString(), 
         userUsername: loggedInUserUsername,
         kartuKeluargaFileName: kartuKeluargaFile?.name,
         ijazahSklFileName: ijazahSklFile?.name,
-        studentPhotoFileName: studentPhotoFile?.name,
+        studentPhotoDataUri: studentPhotoDataUri,
     };
     delete (dataForAction as any).kartuKeluarga;
     delete (dataForAction as any).ijazahSkl;
     delete (dataForAction as any).studentPhoto;
 
-
     try {
-      const result = await sendRegistrationEmail(dataForAction as Parameters<typeof sendRegistrationEmail>[0]);
+      const result = await sendRegistrationEmail(dataForAction as any);
 
       if (result.success) {
         if (typeof window !== 'undefined') {
@@ -201,7 +225,7 @@ export default function RegistrationForm() {
             quizCompleted: false, 
             kartuKeluargaFileName: kartuKeluargaFile?.name,
             ijazahSklFileName: ijazahSklFile?.name,
-            studentPhotoFileName: studentPhotoFile?.name,
+            studentPhotoDataUri: studentPhotoDataUri,
           };
           delete (newApplicationData as any).kartuKeluarga;
           delete (newApplicationData as any).ijazahSkl;
@@ -636,5 +660,3 @@ export default function RegistrationForm() {
     </Form>
   );
 }
-
-    
