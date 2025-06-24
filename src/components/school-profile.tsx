@@ -10,12 +10,12 @@ export default function SchoolProfile() {
       {/* Hero Section */}
       <section className="relative rounded-xl overflow-hidden shadow-2xl">
         <Image 
-          src="https://placehold.co/1200x500.png" 
+          src="https://picsum.photos/seed/school/1200/500" 
           alt="Gedung Sekolah SMP Makarya" 
           width={1200} 
           height={500} 
           className="w-full object-cover"
-          data-ai-hint="school building"
+          data-ai-hint="school facade"
           priority
         />
         <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-center p-8">
