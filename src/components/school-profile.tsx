@@ -10,7 +10,7 @@ export default function SchoolProfile() {
       {/* Hero Section */}
       <section className="relative rounded-xl overflow-hidden shadow-2xl">
         <Image 
-          src="https://picsum.photos/1200/500" 
+          src="https://placehold.co/1200x500.png" 
           alt="Gedung Sekolah SMP Makarya" 
           width={1200} 
           height={500} 
