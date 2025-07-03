@@ -1,10 +1,10 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { LogIn } from 'lucide-react';
 
 // Google Logo SVG component
@@ -18,11 +18,17 @@ const GoogleLogo = () => (
   </svg>
 );
 
-
 export default function SignInPage() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [redirectUrl, setRedirectUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Access searchParams only on the client side
+    const redirect = searchParams.get('redirect');
+    setRedirectUrl(redirect);
+  }, [searchParams]);
 
   const handleGoogleSignIn = () => {
     // In a real application, this would initiate the Google OAuth flow.
@@ -54,7 +60,6 @@ export default function SignInPage() {
 
     // Simulate redirection after a short delay
     setTimeout(() => {
-      const redirectUrl = searchParams.get('redirect');
       if (redirectUrl) {
         router.push(redirectUrl);
       } else {
@@ -94,4 +99,3 @@ export default function SignInPage() {
     </div>
   );
 }
-
