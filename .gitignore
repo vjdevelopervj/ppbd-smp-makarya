@@ -45,3 +45,4 @@ public/_auth/*
 firebase.json
 firebase-debug.log
 firestore-debug.log
+.env
