@@ -32,7 +32,6 @@ import { id } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { sendRegistrationEmail } from '@/app/actions/registrationActions';
 
 const currentYear = new Date().getFullYear();
 
@@ -194,73 +193,51 @@ export default function RegistrationForm() {
         }
     }
 
-    const dataForAction = {
-        ...data,
-        birthDate: data.birthDate.toISOString(), 
-        userUsername: loggedInUserUsername,
-        kartuKeluargaFileName: kartuKeluargaFile?.name,
-        ijazahSklFileName: ijazahSklFile?.name,
-        studentPhotoDataUri: studentPhotoDataUri,
-    };
-    delete (dataForAction as any).kartuKeluarga;
-    delete (dataForAction as any).ijazahSkl;
-    delete (dataForAction as any).studentPhoto;
-
     try {
-      const result = await sendRegistrationEmail(dataForAction as any);
+      if (typeof window !== 'undefined') {
+        const applicationsRaw = localStorage.getItem(STUDENT_APPLICATIONS_KEY);
+        let applications: StudentApplicationDataToStore[] = applicationsRaw ? JSON.parse(applicationsRaw) : [];
+        
+        const existingApplicationIndex = applications.findIndex(app => app.nisn === data.nisn);
+        
+        const newApplicationData: StudentApplicationDataToStore = {
+          ...data, 
+          id: data.nisn,
+          userUsername: loggedInUserUsername,
+          formSubmittedDate: new Date().toISOString(),
+          birthDate: data.birthDate.toISOString(),
+          quizCompleted: false, 
+          kartuKeluargaFileName: kartuKeluargaFile?.name,
+          ijazahSklFileName: ijazahSklFile?.name,
+          studentPhotoDataUri: studentPhotoDataUri,
+        };
+        delete (newApplicationData as any).kartuKeluarga;
+        delete (newApplicationData as any).ijazahSkl;
+        delete (newApplicationData as any).studentPhoto;
 
-      if (result.success) {
-        if (typeof window !== 'undefined') {
-          const applicationsRaw = localStorage.getItem(STUDENT_APPLICATIONS_KEY);
-          let applications: StudentApplicationDataToStore[] = applicationsRaw ? JSON.parse(applicationsRaw) : [];
-          
-          const existingApplicationIndex = applications.findIndex(app => app.nisn === data.nisn);
-          
-          const newApplicationData: StudentApplicationDataToStore = {
-            ...data, 
-            id: data.nisn,
-            userUsername: loggedInUserUsername,
-            formSubmittedDate: new Date().toISOString(),
-            birthDate: data.birthDate.toISOString(),
-            quizCompleted: false, 
-            kartuKeluargaFileName: kartuKeluargaFile?.name,
-            ijazahSklFileName: ijazahSklFile?.name,
-            studentPhotoDataUri: studentPhotoDataUri,
+
+        if (existingApplicationIndex > -1) {
+          applications[existingApplicationIndex] = {
+            ...applications[existingApplicationIndex], 
+            ...newApplicationData, 
+            quizCompleted: applications[existingApplicationIndex].quizCompleted,
+            quizScore: applications[existingApplicationIndex].quizScore,
+            passedQuiz: applications[existingApplicationIndex].passedQuiz,
           };
-          delete (newApplicationData as any).kartuKeluarga;
-          delete (newApplicationData as any).ijazahSkl;
-          delete (newApplicationData as any).studentPhoto;
-
-
-          if (existingApplicationIndex > -1) {
-            applications[existingApplicationIndex] = {
-              ...applications[existingApplicationIndex], 
-              ...newApplicationData, 
-              quizCompleted: applications[existingApplicationIndex].quizCompleted,
-              quizScore: applications[existingApplicationIndex].quizScore,
-              passedQuiz: applications[existingApplicationIndex].passedQuiz,
-            };
-          } else {
-            applications.push(newApplicationData);
-          }
-          localStorage.setItem(STUDENT_APPLICATIONS_KEY, JSON.stringify(applications));
+        } else {
+          applications.push(newApplicationData);
         }
-
-        toast({
-          title: 'Pendaftaran Diproses!',
-          description: 'Data Anda telah kami terima. Anda akan diarahkan ke sesi tes.',
-          variant: 'default',
-          className: 'bg-accent text-accent-foreground',
-        });
-        form.reset();
-        router.push(`/quiz?name=${encodeURIComponent(data.fullName)}&nisn=${encodeURIComponent(data.nisn)}`);
-      } else {
-        toast({
-          title: 'Pendaftaran Gagal',
-          description: result.message || 'Terjadi kesalahan saat mengirim data.',
-          variant: 'destructive',
-        });
+        localStorage.setItem(STUDENT_APPLICATIONS_KEY, JSON.stringify(applications));
       }
+
+      toast({
+        title: 'Pendaftaran Diproses!',
+        description: 'Data Anda telah kami terima. Anda akan diarahkan ke sesi tes.',
+        variant: 'default',
+        className: 'bg-accent text-accent-foreground',
+      });
+      form.reset();
+      router.push(`/quiz?name=${encodeURIComponent(data.fullName)}&nisn=${encodeURIComponent(data.nisn)}`);
     } catch (error) {
       console.error("Error submitting registration:", error);
       toast({
@@ -660,3 +637,4 @@ export default function RegistrationForm() {
     </Form>
   );
 }
+    
